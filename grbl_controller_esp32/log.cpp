@@ -38,7 +38,8 @@ void logBufferWrite(uint8_t c) {
 
 void logBufferWriteLine(char * line){
   int lineLen = strlen(line);
-  for ( int i = 0; i < lineLen ; i++ ) {
+  int i = 0;
+  for ( i ; i < lineLen ; i++ ) {
     logBufferWrite( line[i] ) ;    
   }
   logBufferWrite( BUFFER_EOL ) ; // special car to identify the end of the line

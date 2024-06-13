@@ -40,72 +40,72 @@ void initWifi() {
   drawLogo();
   retrieveWifiParam();
   if (wifiType == NO_WIFI) {
-    drawLineText( __WIFI_NOT_REQUESTED , hCoord(160), vCoord(yText), 2 , 1 , TFT_GREEN) ; // texte, x, y , font, size ,color  
-      //return ; 
-  } else {
-    grbl_Telnet_IP.fromString(grbl_Telnet_IPStr); // convert telnet ip adr
-    if ( local_IPStr != "" && gatewayStr != "" && subnetStr != "" ){
-      local_IP.fromString(local_IPStr);
-      gateway.fromString(gatewayStr);
-      subnet.fromString(subnetStr);
-  
-      if (!WiFi.config(local_IP, gateway, subnet)) {
-        Serial.println("[MSG:Fix IP address failed to configure]");
-      }  
-    } else {
-      Serial.println("[MSG:Wifi start without satic IP address]");
-    }
-    if (wifiType == ESP32_ACT_AS_STATION) {
-        //Serial.print("local IP="); Serial.println(local_IPStr);
-        //Serial.print("gateway="); Serial.println(gatewayStr);
-        //Serial.print("subnet="); Serial.println(subnetStr);
-        //blankTft("Connecting to Wifi access point", 5 , 20 ) ; // blank screen and display a text at x, y 
-        WiFi.begin(wifiSsid , wifiPassword);
-        uint8_t initWifiCnt = 40 ;   // maximum 40 retries for connecting to wifi
-        while (WiFi.status() != WL_CONNECTED)  { // Wait for the Wi-Fi to connect; max 40 retries
-          delay(250); // Serial.print('.');
-          if ((initWifiCnt % 8) == 0) {
-            drawLineText( __CONNECTING_TO_WIFI  , hCoord(160), vCoord(yText), 2 , 1 , TFT_GREEN) ; // texte, x, y , font, size ,color  
-          }else if ((initWifiCnt % 8) == 5) {
-            clearLine(vCoord(yText), 2 , 1, SCREEN_BACKGROUND);
-          }
-          //printTft(".") ;
-          initWifiCnt--;
-          if ( initWifiCnt == 0) {
-            fillMsg(_WIFI_NOT_FOUND  );
-            break;
-          }
-        }
-        clearLine(vCoord(yText), 2 , 1, SCREEN_BACKGROUND);
-        if (initWifiCnt == 0){
-          drawLineText( __NO_WIFI_CONNECTION , hCoord(160), vCoord(yText), 2 , 1 , SCREEN_ALERT_TEXT) ; // texte, x, y , font, size ,color  
-        } else {
-          drawLineText( __CONNECTED_AS_STATION  , hCoord(160), vCoord(yText), 2 , 1 , TFT_GREEN) ; // texte, x, y , font, size ,color  
-        }
-        delay(2000) ;
-        //Serial.println("\nConnected to "+WiFi.SSID()+" Use IP address: "+WiFi.localIP().toString()); // Report which SSID and IP is in use
-    } else if (wifiType == ESP32_ACT_AS_AP) {
-      WiFi.softAP( wifiSsid , wifiPassword );
-      //Serial.println("\nESP has IP address: "+ WiFi.softAPIP().toString()); // Report which SSID and IP is in use
-          drawLineText( __AP_STARTED  , hCoord(160), vCoord(yText), 2 , 1 , TFT_GREEN) ; // texte, x, y , font, size ,color  
-    }  
-    //WiFi.setSleep(false);
-    //----------------------------------------------------------------------   
-    ///////////////////////////// Server Commands 
-    server.on("/",         HomePage);
-    server.on("/download", File_Download);
-    server.on("/upload",   File_Upload);
-    server.on("/fupload",  HTTP_POST,[](){ server.send(200);}, handleFileUpload);
-    //server.on("/stream",   File_Stream);
-    server.on("/delete",   File_Delete);
-    server.on("/dir",      sd_dir);
-    server.on("/confirmDelete",      confirmDelete);
-    server.on("/confirmDownload",      confirmDownload);
-    ///////////////////////////// End of Request commands
-    server.begin();
-    //Serial.println("HTTP server started");  
+    drawLineText( "No wifi foreseen" , hCoord(160), vCoord(yText), 2 , 1 , TFT_GREEN) ; // texte, x, y , font, size ,color  
+      return ; 
   }
-  while (millis() < (startMillis + 4000) ) {
+  grbl_Telnet_IP.fromString(grbl_Telnet_IPStr); // convert telnet ip adr
+  if ( local_IPStr != "" && gatewayStr != "" && subnetStr != "" ){
+    local_IP.fromString(local_IPStr);
+    gateway.fromString(gatewayStr);
+    subnet.fromString(subnetStr);
+
+    if (!WiFi.config(local_IP, gateway, subnet)) {
+      Serial.println("[MSG:Fix IP address failed to configure]");
+    }  
+  } else {
+    Serial.println("[MSG:Wifi start without satic IP address]");
+  }
+  if (wifiType == ESP32_ACT_AS_STATION) {
+      //Serial.print("local IP="); Serial.println(local_IPStr);
+      //Serial.print("gateway="); Serial.println(gatewayStr);
+      //Serial.print("subnet="); Serial.println(subnetStr);
+      //blankTft("Connecting to Wifi access point", 5 , 20 ) ; // blank screen and display a text at x, y 
+      WiFi.begin(wifiSsid , wifiPassword);
+      uint8_t initWifiCnt = 40 ;   // maximum 40 retries for connecting to wifi
+      while (WiFi.status() != WL_CONNECTED)  { // Wait for the Wi-Fi to connect; max 40 retries
+        delay(250); // Serial.print('.');
+        if ((initWifiCnt % 8) == 0) {
+          drawLineText( "Connecting to wifi" , hCoord(160), vCoord(yText), 2 , 1 , TFT_GREEN) ; // texte, x, y , font, size ,color  
+        }else if ((initWifiCnt % 8) == 5) {
+          clearLine(vCoord(yText), 2 , 1, SCREEN_BACKGROUND);
+        }
+        //printTft(".") ;
+        initWifiCnt--;
+        if ( initWifiCnt == 0) {
+          fillMsg(_WIFI_NOT_FOUND  );
+          break;
+        }
+      }
+      clearLine(vCoord(yText), 2 , 1, SCREEN_BACKGROUND);
+      if (initWifiCnt == 0){
+        drawLineText( "No connection to wifi" , hCoord(160), vCoord(yText), 2 , 1 , SCREEN_ALERT_TEXT) ; // texte, x, y , font, size ,color  
+      } else {
+        drawLineText( "Connected to wifi as Station" , hCoord(160), vCoord(yText), 2 , 1 , TFT_GREEN) ; // texte, x, y , font, size ,color  
+      }
+      delay(2000) ;
+      //Serial.println("\nConnected to "+WiFi.SSID()+" Use IP address: "+WiFi.localIP().toString()); // Report which SSID and IP is in use
+  } else if (wifiType == ESP32_ACT_AS_AP) {
+    WiFi.softAP( wifiSsid , wifiPassword );
+    //Serial.println("\nESP has IP address: "+ WiFi.softAPIP().toString()); // Report which SSID and IP is in use
+        drawLineText( "Wifi Access Point started" , hCoord(160), vCoord(yText), 2 , 1 , TFT_GREEN) ; // texte, x, y , font, size ,color  
+  }  
+  //WiFi.setSleep(false);
+  //----------------------------------------------------------------------   
+  ///////////////////////////// Server Commands 
+  server.on("/",         HomePage);
+  server.on("/download", File_Download);
+  server.on("/upload",   File_Upload);
+  server.on("/fupload",  HTTP_POST,[](){ server.send(200);}, handleFileUpload);
+  //server.on("/stream",   File_Stream);
+  server.on("/delete",   File_Delete);
+  server.on("/dir",      sd_dir);
+  server.on("/confirmDelete",      confirmDelete);
+  server.on("/confirmDownload",      confirmDownload);
+  ///////////////////////////// End of Request commands
+  server.begin();
+  //Serial.println("HTTP server started");  
+
+  while (millis() < (startMillis + 2000) ) {
     delay(100);
   }
 }
@@ -178,10 +178,10 @@ boolean checkWifiOnSD(void){
       bool wifiTypeOk = false;
       bool wifiPasswordOk = false;
       bool wifiSsidOk = false;
-      //bool local_IPOk = false ;
-      //bool gatewayOk = false ;
-      //bool subnetOk = false ;
-      //bool grbl_Telnet_IPOk = false ;  
+      bool local_IPOk = false ;
+      bool gatewayOk = false ;
+      bool subnetOk = false ;
+      bool grbl_Telnet_IPOk = false ;  
       uint8_t n; // number of bytes in a line
       char * pBeginValue ;
       char * pEndValue ;
@@ -241,19 +241,19 @@ boolean checkWifiOnSD(void){
             } else if ( memcmp ( "LOCAL_IP=", line, sizeof("LOCAL_IP=")-1) == 0){
               memcpy(local_IPChar , pBeginValue+1 , sizeValue) ;
               local_IPStr = local_IPChar ;
-              //local_IPOk = true ;
+              local_IPOk = true ;
             } else if ( memcmp ( "GATEWAY=", line, sizeof("GATEWAY=")-1) == 0){
               memcpy(gatewayChar , pBeginValue+1 , sizeValue) ;
               gatewayStr = gatewayChar ;
-              //gatewayOk = true ;
+              gatewayOk = true ;
             } else if ( memcmp ( "SUBNET=", line, sizeof("SUBNET=")-1) == 0){
               memcpy(subnetChar , pBeginValue+1 , sizeValue) ;
               subnetStr = subnetChar ;
-              //subnetOk = true ;
+              subnetOk = true ;
             } else if ( memcmp ( "GRBL_TELNET_IP=", line, sizeof("GRBL_TELNET_IP=")-1) == 0){
               memcpy(grbl_Telnet_IPChar , pBeginValue+1 , sizeValue) ;
               grbl_Telnet_IPStr = grbl_Telnet_IPChar ;
-              //grbl_Telnet_IPOk = true ;
+              grbl_Telnet_IPOk = true ;
             }  
           }
         }

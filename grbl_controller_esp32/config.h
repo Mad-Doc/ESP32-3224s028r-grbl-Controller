@@ -2,26 +2,26 @@
 #define _config_h
 
 
-#define ESP32_VERSION "vers.2.1.g"
-#define VERSION_TEXT "Firmware vers. 2.1.g( 10 jun 2021)"
+#define ESP32_VERSION "vers.2.0.4"
+#define VERSION_TEXT "Firmware vers. 2.0.1 (mod by doc)"
 
 
 // decide if you will use Wifi or not (and how)
 #define WIFI ESP32_ACT_AS_STATION              // select between NO_WIFI, ESP32_ACT_AS_STATION, ESP32_ACT_AS_AP 
 
 // If wifi is used, set the parameter to identify the access point (= the router when ESP32_ACT_AS_STATION or the ESP32 when ESP32_ACT_AS_AP)
-#define MY_SSID "bbox2-58c4"       // replace by the name of your access point (when act as station) or the name you assign to your device (when act as acces point)
+#define MY_SSID "FRITZ!Box7530BC"       // replace by the name of your access point (when act as station) or the name you assign to your device (when act as acces point)
 
 // for ESP32_ACT_AS_STATION , set the password to get access to your access point (router)
 // for ESP_ACT_AS_AP, set the password you want to use to protect your ESP32 ( can be empty)
-#define MY_PASSWORD "your password" // replace by your password 
+#define MY_PASSWORD "61366640169344341908" // replace by your password 
 
 // if you use Wifi, you can (optional) define a fix IP address. Then you have to define 3 parameters
 // If one of next 3 parameters is "", it means that you do not want to use a fix local IP address.
 //#define LOCAL_IP ""   // fix IP address
-#define LOCAL_IP "192.168.1.10"   // fix IP address
+#define LOCAL_IP "192.168.178.210"   // fix IP address
 #define SUBNET "255.255.255.0"    // subnet mask of your local network
-#define GATEWAY "192.168.1.1"     // gateway that have to check the IP address
+#define GATEWAY "192.168.178.1"     // gateway that have to check the IP address
 
 // if you use GRBL_ESP32 board, you can connect to this board with Serial, telnet and/or Bluetooth
 // to connect via telnet to GRBL_ESP32 board, you have to define here the IP adress of the GRBL_ESP32 board
@@ -32,16 +32,13 @@
 
 
 // select your language between EN, FR, DE
-#define LANGUAGE EN
+#define LANGUAGE FR
 
-// uncomment if you want that the firmware handles 4 axes instead of 3 ;(The GRBL STM32 firmware has to be compiled/flashed with the same option)
-//#define AA_AXIS    
+//#define AA_AXIS    // uncomment if you want that the firmware handles 4 axes instead of 3 ;(The GRBL STM32 firmware has to be compiled/flashed with the same option)
 
-// select the version of the TFT board being used ; it can be 1 or 2 (1 uses 4 pins header to connect to GRbl; 2 use RJ45 connector)               
-#define TFT_CARD_VERSION 1
+#define TFT_CARD_VERSION 2 // define the version of the TFT board being used ; it can be 1 or 2 (1 uses 4 pins header to connect to GRbl; 2 use RJ45 connector)               
 
-// define size of display : must be 3 (for 3.2) or 4
-#define TFT_SIZE 3        
+#define TFT_SIZE 4  // define size of display : must be 3 (for 3.2) or 4     
 
 // Set REPEAT_CAL to true instead of false to run calibration again, otherwise it will only be done once.
 // Repeat calibration if you change the screen rotation.
@@ -51,8 +48,7 @@
 // it seems that 5000 (mm/min) is a good value for RS-CNC32
 #define MAX_XY_SPEED_FOR_JOGGING 5000 
 
-// comment this line if you want that the buttons use texts instead of icons.
-#define USE_ICONS 
+#define USE_ICONS // comment this line if you want that the buttons uses text instead of icons.
 
 // note: this project allows to define up to 11 GRBL set of commands (macros) that can be called from setup screen.
 // Those are defined by the user on a sd card and loaded on request into the ESP32 flash memory system (SPIFFS)
@@ -67,7 +63,6 @@
 // After reset, there will be a button named xxxxxxxxx in the "Setup" + "CMD" menu
 // If you upload a file having the same button position(digit 1...9, A or B) as an existing button, the new file will replace the button name and content of the previous button. 
 // To delete a button create and execute a file having a name like Cmd3_delete where 3 is the button position (digit 1...9, A or B) to delete. 
-// It is also possible to design you own icons for those commands. See the tutorial on www.makerfr.com
 
 // select color between (or define your own) 
 // TFT_BLACK       0x0000      /*   0,   0,   0 */
@@ -184,25 +179,25 @@
 //#define TFT_RST  12  // Reset pin (could connect to RST pin)
 
 #else  // for board version 2 *********************************
-#define TOUCH_CS_PIN  26
-#define TFT_LED_PIN 25       // pin connected to led of lcd; pin has to be high to set led ON
+#define TOUCH_CS_PIN  33
+#define TFT_LED_PIN 21       // pin connected to led of lcd; pin has to be high to set led ON
 #define SD_CHIPSELECT_PIN 5  // pin for SD card selection
 
 // in new version, the TFT uses another ESP32 SPI bus (HSPI) that uses other pins. They are defined in User_setup.h file.
-//#define TFT_MISO 12
-//#define TFT_MOSI 13
-//#define TFT_SCLK 14
+#define TFT_MISO 12
+#define TFT_MOSI 13
+#define TFT_SCLK 14
 // So HSPI has to be activated. This is done in User_setup.h 
 
 // furthermore, TFT uses also following pins defined in User_Setup.h file
-//#define TFT_CS   32  // Chip select control pin
-//#define TFT_DC   27  // Data Command control pin
-//#define TFT_RST  33  // Reset pin (could connect to RST pin)
+#define TFT_CS   15  // Chip select control pin
+#define TFT_DC   2  // Data Command control pin
+#define TFT_RST  -1  // Reset pin (could connect to RST pin)
 
 //Touchscreen and SD card uses the same SPI bus (VSPI) with folowing pins:
-#define TOUCH_MISO 19
-#define TOUCH_MOSI 23
-#define TOUCH_SCLK 18
+#define TOUCH_MISO 39
+#define TOUCH_MOSI 32
+#define TOUCH_SCLK 25
   
 #endif  // end of type of board
 
@@ -210,7 +205,7 @@
 #define SERIAL2_RXPIN 16
 #define SERIAL2_TXPIN 17
 
-// pin for Nunchuk are currently the defalult I2C pin so pins 21, 22
+// pin for Nunchuk are currently the defalult I2C pin so pins 21, 22 (change to 22 and 35 ! )
 
 
 
@@ -234,7 +229,7 @@
 #define _SETX_STRING "G10 L20 P1 X0\n"
 #define _SETY_STRING "G10 L20 P1 Y0\n"
 #define _SETZ_STRING "G10 L20 P1 Z0\n"
-#define _SETA_STRING "G10 L20 P1 A0\n"
+#define _SETA_STRING "G10 L20 P1 Z0\n"
 #define _SETXYZ_STRING "G10 L20 P1 X0 Y0 Z0\n"
 #define _SETXYZA_STRING "G10 L20 P1 X0 Y0 Z0 A0\n"
 
@@ -244,5 +239,3 @@
 
 
 #endif
-
-

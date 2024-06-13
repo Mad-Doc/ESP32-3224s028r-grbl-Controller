@@ -17,13 +17,10 @@ M_pLabel mAlarms[_MAX_ALARMS];
 extern SdFat32 sd;
 
 extern char cmdName[11][17] ;
-extern uint8_t cmdIcons[11][1300] ;    // store the icons of the commands buttons (if any) 1300 = an icon of 100X100
-extern boolean cmdIconExist[11];       // store a flag to say if an icon exist or not for a cmd
-
 extern char fileNames[4][23] ; // 22 car per line + "\0"
 extern char grblFileNamesTft[4][40]; // contains only the 4 names to be displayed on TFT (needed because name is altered during btn drawing 
 
-// rempli le paramÃ©trage d'un boutons d'une page 
+// rempli le paramétrage d'un boutons d'une page 
 void fillMPage (uint8_t _page , uint8_t _btnPos , uint8_t _boutons, uint8_t _actions , void (*_pfNext)(uint8_t) , uint8_t _parameters ) {
   mPages[_page].boutons[_btnPos] =  _boutons ;
   mPages[_page].actions[_btnPos] =  _actions ;
@@ -56,11 +53,10 @@ mButton[_ZM].pLabel = "Z-" ;
 mButton[_AP].pLabel = "A+" ;
 mButton[_AM].pLabel = "A-" ;
 mButton[_D_AUTO].pLabel = __D_AUTO  ;
-mButton[_D100].pLabel = "100" ;
-mButton[_D10].pLabel = "10" ;
-mButton[_D1].pLabel = "1" ;
-mButton[_D0_1].pLabel = "0.1" ;
 mButton[_D0_01].pLabel = "0.01" ;
+mButton[_D0_1].pLabel = "0.1" ;
+mButton[_D1].pLabel = "1" ;
+mButton[_D10].pLabel = "10" ;
 mButton[_SET_WCS].pLabel = __SET_WCS  ;
 mButton[_SETX].pLabel = __SETX  ;
 mButton[_SETY].pLabel = __SETY  ;
@@ -98,7 +94,7 @@ mButton[_MASKED1].pLabel = "" ; // this is a hidden button; so must be empty
 mButton[_PG_PREV].pLabel = __PG_PREV ;
 mButton[_PG_NEXT].pLabel = __PG_NEXT ;
 mButton[_SD_SHOW].pLabel = __SD_SHOW ; 
-mButton[_OVERWRITE].pLabel = __OVERWRITE ; 
+mButton[_OVERWRITE].pLabel = "" ; // this is a hidden button; so must be empty
 mButton[_OVER_SWITCH_TO_FEEDRATE].pLabel = __OVER_SWITCH_TO_FEEDRATE ;
 mButton[_OVER_SWITCH_TO_SPINDLE].pLabel = __OVER_SWITCH_TO_SPINDLE ;
 mButton[_OVER_10P].pLabel = __OVER_10P ;
@@ -117,8 +113,6 @@ mButton[_FILE2_GRBL].pLabel = grblFileNamesTft[2] ;
 mButton[_FILE3_GRBL].pLabel = grblFileNamesTft[3] ; 
 mButton[_YES_BTN].pLabel = __YES ;
 mButton[_NO_BTN].pLabel = __NO ;
-mButton[_LOG].pLabel =  __LOG ; //modified by HTheatre (switched from pLabel to Icon )
-
 
 #ifdef USE_ICONS
 mButton[_SETUP].pIcon = setupIcon  ;
@@ -145,11 +139,10 @@ mButton[_ZM].pIcon = zmIcon ;
 //mButton[_AP].pIcon = "A+" ;
 //mButton[_AM].pIcon = "A-" ;
 mButton[_D_AUTO].pIcon = dAutoIcon  ;
-mButton[_D100].pIcon = d100Icon ; //added by HTheatre for 100mm pitch displacement in move screen - also created in setupTxt.cpp file)
-mButton[_D10].pIcon = d10Icon ;
-mButton[_D1].pIcon = d1Icon ;
-mButton[_D0_1].pIcon = d0_1Icon ;
 mButton[_D0_01].pIcon = d0_01Icon ;
+mButton[_D0_1].pIcon = d0_1Icon ;
+mButton[_D1].pIcon = d1Icon ;
+mButton[_D10].pIcon = d10Icon ;
 mButton[_SET_WCS].pIcon = setWCSIcon  ;
 mButton[_SETX].pIcon = setXIcon ;
 mButton[_SETY].pIcon = setYIcon ;
@@ -158,56 +151,53 @@ mButton[_SETZ].pIcon = setZIcon ;
 mButton[_SETXYZ].pIcon = setXYZIcon  ;
 //mButton[_SETXYZA].pIcon = __SETXYZA  ;
 mButton[_TOOL].pIcon = toolIcon  ;
-mButton[_SET_CHANGE].pIcon = setChangeIcon  ;
-mButton[_SET_PROBE].pIcon = setProbeIcon  ;
-mButton[_SET_CAL].pIcon = setCalIcon  ;
-mButton[_GO_CHANGE].pIcon = GoChangeIcon ; 
-mButton[_GO_PROBE].pIcon = GoProbeIcon ;
+//mButton[_SET_CHANGE].pIcon = __SET_CHANGE  ;
+//mButton[_SET_PROBE].pIcon = __SET_PROBE  ;
+//mButton[_SET_CAL].pIcon = __SET_CAL  ;
+//mButton[_GO_CHANGE].pIcon = __GO_CHANGE ; 
+//mButton[_GO_PROBE].pIcon = __GO_PROBE ;
 mButton[_BACK].pIcon = backIcon  ;
 //mButton[_LEFT].pIcon = leftIcon  ;
 //mButton[_RIGHT].pIcon = rightIcon  ;
 mButton[_UP].pIcon = upIcon  ;
-if( cmdIconExist[0] ) { mButton[_CMD1].pIcon = &cmdIcons[0][0] ; } // cmdName is unchanged but will not be used. 
-if( cmdIconExist[1] ) { mButton[_CMD2].pIcon = &cmdIcons[1][0] ; }
-if( cmdIconExist[2] ) { mButton[_CMD3].pIcon = &cmdIcons[2][0] ; }
-if( cmdIconExist[3] ) { mButton[_CMD4].pIcon = &cmdIcons[3][0] ; }
-if( cmdIconExist[4] ) { mButton[_CMD5].pIcon = &cmdIcons[4][0] ; }
-if( cmdIconExist[5] ) { mButton[_CMD6].pIcon = &cmdIcons[5][0] ; }
-if( cmdIconExist[6] ) { mButton[_CMD7].pIcon = &cmdIcons[6][0] ; }
-if( cmdIconExist[7] ) { mButton[_CMD8].pIcon = &cmdIcons[7][0] ; }
-if( cmdIconExist[8] ) { mButton[_CMD9].pIcon = &cmdIcons[8][0] ; }
-if( cmdIconExist[9] ) { mButton[_CMD10].pIcon = &cmdIcons[9][0] ; }
-if( cmdIconExist[10] ) { mButton[_CMD11].pIcon = &cmdIcons[10][0] ; }
+//mButton[_CMD1].pLabel = &cmdName[0][0] ;
+//mButton[_CMD2].pLabel = &cmdName[1][0] ;
+//mButton[_CMD3].pLabel = &cmdName[2][0] ;
+//mButton[_CMD4].pLabel = &cmdName[3][0] ;
+//mButton[_CMD5].pLabel = &cmdName[4][0] ;
+//mButton[_CMD6].pLabel = &cmdName[5][0] ;
+//mButton[_CMD7].pLabel = &cmdName[6][0] ;
+//mButton[_CMD8].pLabel = &cmdName[7][0] ;
+//mButton[_CMD9].pLabel = &cmdName[8][0] ;
+//mButton[_CMD10].pLabel = &cmdName[9][0] ;
+//mButton[_CMD11].pLabel = &cmdName[10][0] ;
 mButton[_MORE_PAUSE].pIcon = morePauseIcon ;
 //mButton[_FILE0].pLabel = fileNames[0] ;  // labels are defined during execution in a table
 //mButton[_FILE1].pLabel = fileNames[1] ;
 //mButton[_FILE2].pLabel = fileNames[2] ;
 //mButton[_FILE3].pLabel = fileNames[3] ;
-mButton[_MASKED1].pLabel = "" ; // this is a hidden button; so must be empty
+//mButton[_MASKED1].pLabel = "" ; // this is a hidden button; so must be empty
 mButton[_PG_PREV].pIcon = pgPrevIcon ;
 mButton[_PG_NEXT].pIcon = pgNextIcon ;
 mButton[_SD_SHOW].pIcon = sdShowIcon ; 
-mButton[_OVERWRITE].pIcon = overwriteIcon ; //modified by HTheatre (switched from pLabel to Icon )
-mButton[_OVER_SWITCH_TO_FEEDRATE].pIcon = over_switch_to_FeedrateIcon ; //modified by HTheatre (switched from pLabel to Icon )
-mButton[_OVER_SWITCH_TO_SPINDLE].pIcon = over_switch_to_SpindleIcon ; //modified by HTheatre (switched from pLabel to Icon )
+mButton[_OVERWRITE].pLabel = __OVERWRITE ; 
+//mButton[_OVER_SWITCH_TO_FEEDRATE].pLabel = __OVER_SWITCH_TO_FEEDRATE ;
+//mButton[_OVER_SWITCH_TO_SPINDLE].pLabel = __OVER_SWITCH_TO_SPINDLE ;
 //mButton[_OVER_10P].pLabel = __OVER_10P ;
 //mButton[_OVER_10M].pLabel = __OVER_10M ;
 //mButton[_OVER_1P].pLabel = __OVER_1P ;
 //mButton[_OVER_1M].pLabel = __OVER_1M ;
 //mButton[_OVER_100].pLabel = __OVER_100 ;
-mButton[_COMMUNICATION].pIcon = communicationIcon ; //modified by HTheatre (switched from pLabel to Icon )
-mButton[_SERIAL].pIcon = serialIcon ; //modified by HTheatre (switched from pLabel to Icon )
-mButton[_BLUETOOTH].pIcon = bluetoothIcon ; //modified by HTheatre (switched from pLabel to Icon )
-mButton[_TELNET].pIcon = telnetGrblIcon ; //modified by HTheatre (switched from pLabel to Icon )
-mButton[_SD_GRBL].pIcon = sdGrblIcon ; //modified by HTheatre (switched from pLabel to Icon )
+//mButton[_COMMUNICATION].pLabel = __COMMUNICATION ;
+//mButton[_SERIAL].pLabel = __SERIAL ;
+//mButton[_BLUETOOTH].pLabel = __BLUETOOTH ;
+//mButton[_TELNET].pLabel = __TELNET ;
+//mButton[_SD_GRBL].pLabel = __SD_GRBL ;
 //mButton[_FILE0_GRBL].pLabel = grblFileNamesTft[0] ;
 //mButton[_FILE1_GRBL].pLabel = grblFileNamesTft[1] ;
 //mButton[_FILE2_GRBL].pLabel = grblFileNamesTft[2] ;
 //mButton[_FILE3_GRBL].pLabel = grblFileNamesTft[3] ;
-mButton[_YES_BTN].pIcon = yesIcon ;
-mButton[_NO_BTN].pIcon = noIcon ;
-mButton[_LOG].pIcon = logGrblIcon ; //modified by HTheatre (switched from pLabel to Icon )
-
+mButton[_LOG].pLabel = __LOG ;
 
 #endif //end of USE_ICONS
 
@@ -228,7 +218,7 @@ fillMPage (_P_SETUP , 0 , _UNLOCK , _JUST_PRESSED , fUnlock , 0) ;
 fillMPage (_P_SETUP , 4 , _HOME , _JUST_PRESSED , fHome , 0) ;
 fillMPage (_P_SETUP , 5 , _RESET , _JUST_PRESSED , fReset , 0) ;
 fillMPage (_P_SETUP , 6 , _CMD , _JUST_PRESSED , fGoToPage , _P_CMD ) ;
-fillMPage (_P_SETUP , 7 , _MOVE , _JUST_PRESSED , fGoToPage , _P_MOVE ) ; 
+fillMPage (_P_SETUP , 7 , _MOVE , _JUST_PRESSED , fGoToPage , _P_MOVE ) ;
 fillMPage (_P_SETUP , 8 , _SET_WCS , _JUST_PRESSED , fGoToPage , _P_SETXYZ ) ;
 fillMPage (_P_SETUP , 9 , _TOOL , _JUST_PRESSED , fGoToPage , _P_TOOL ) ;
 fillMPage (_P_SETUP , 10 , _COMMUNICATION , _JUST_PRESSED , fGoToPage , _P_COMMUNICATION ) ;
@@ -300,17 +290,17 @@ fillMPage (_P_SD , 9 , _INFO , _JUST_PRESSED , fGoToPage , _P_INFO ) ;
 
 mPages[_P_CMD].titel = "" ;
 mPages[_P_CMD].pfBase = fCmdBase ; // 
-if (cmdName[0][0] ) fillMPage (_P_CMD , 0 , _CMD1 , _JUST_PRESSED , fCmd , _CMD1) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[1][0] ) fillMPage (_P_CMD , 1 , _CMD2 , _JUST_PRESSED , fCmd , _CMD2) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[2][0] ) fillMPage (_P_CMD , 2 , _CMD3 , _JUST_PRESSED , fCmd , _CMD3) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[3][0] ) fillMPage (_P_CMD , 3 , _CMD4 , _JUST_PRESSED , fCmd , _CMD4) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[4][0] ) fillMPage (_P_CMD , 4 , _CMD5 , _JUST_PRESSED , fCmd , _CMD5) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[5][0] ) fillMPage (_P_CMD , 5 , _CMD6 , _JUST_PRESSED , fCmd , _CMD6) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[6][0] ) fillMPage (_P_CMD , 6 , _CMD7 , _JUST_PRESSED , fCmd , _CMD7) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[7][0] ) fillMPage (_P_CMD , 7 , _CMD8 , _JUST_PRESSED , fCmd , _CMD8) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[8][0] ) fillMPage (_P_CMD , 8 , _CMD9 , _JUST_PRESSED , fCmd , _CMD9) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[9][0] ) fillMPage (_P_CMD , 9 , _CMD10 , _JUST_PRESSED , fCmd , _CMD10) ; // le paramÃ¨tre contient le nÂ° du bouton
-if (cmdName[10][0] ) fillMPage (_P_CMD , 10 , _CMD11 , _JUST_PRESSED , fCmd , _CMD11) ; // le paramÃ¨tre contient le nÂ° du bouton
+if (cmdName[0][0] ) fillMPage (_P_CMD , 0 , _CMD1 , _JUST_PRESSED , fCmd , _CMD1) ; // le paramètre contient le n° du bouton
+if (cmdName[1][0] ) fillMPage (_P_CMD , 1 , _CMD2 , _JUST_PRESSED , fCmd , _CMD2) ; // le paramètre contient le n° du bouton
+if (cmdName[2][0] ) fillMPage (_P_CMD , 2 , _CMD3 , _JUST_PRESSED , fCmd , _CMD3) ; // le paramètre contient le n° du bouton
+if (cmdName[3][0] ) fillMPage (_P_CMD , 3 , _CMD4 , _JUST_PRESSED , fCmd , _CMD4) ; // le paramètre contient le n° du bouton
+if (cmdName[4][0] ) fillMPage (_P_CMD , 4 , _CMD5 , _JUST_PRESSED , fCmd , _CMD5) ; // le paramètre contient le n° du bouton
+if (cmdName[5][0] ) fillMPage (_P_CMD , 5 , _CMD6 , _JUST_PRESSED , fCmd , _CMD6) ; // le paramètre contient le n° du bouton
+if (cmdName[6][0] ) fillMPage (_P_CMD , 6 , _CMD7 , _JUST_PRESSED , fCmd , _CMD7) ; // le paramètre contient le n° du bouton
+if (cmdName[7][0] ) fillMPage (_P_CMD , 7 , _CMD8 , _JUST_PRESSED , fCmd , _CMD8) ; // le paramètre contient le n° du bouton
+if (cmdName[8][0] ) fillMPage (_P_CMD , 8 , _CMD9 , _JUST_PRESSED , fCmd , _CMD9) ; // le paramètre contient le n° du bouton
+if (cmdName[9][0] ) fillMPage (_P_CMD , 9 , _CMD10 , _JUST_PRESSED , fCmd , _CMD10) ; // le paramètre contient le n° du bouton
+if (cmdName[10][0] ) fillMPage (_P_CMD , 10 , _CMD11 , _JUST_PRESSED , fCmd , _CMD11) ; // le paramètre contient le n° du bouton
 fillMPage (_P_CMD , 11 , _INFO , _JUST_PRESSED , fGoToPage , _P_INFO ) ;
 
 mPages[_P_LOG].titel = "" ;
@@ -355,10 +345,10 @@ fillMPage (_P_COMMUNICATION , 8 , _SERIAL , _JUST_PRESSED , fSerial , 0) ;
 fillMPage (_P_COMMUNICATION , 9 , _BLUETOOTH , _JUST_PRESSED , fBluetooth , 0) ;
 fillMPage (_P_COMMUNICATION , 10 , _TELNET , _JUST_PRESSED , fTelnet , 0) ;
 #endif
-fillMPage (_P_COMMUNICATION , 11 , _INFO , _JUST_PRESSED , fGoToPageAndClearMsg , _P_INFO ) ;
+fillMPage (_P_COMMUNICATION , 11 , _INFO , _JUST_PRESSED , fGoToPage , _P_INFO ) ;
 
 mPages[_P_SD_GRBL_WAIT].titel = "" ;  // this screen has only 10 buttons instead of 12
-mPages[_P_SD_GRBL_WAIT].pfBase = fSdGrblWaitBase ;   // cette fonction doit provoque l'envoi d'une commande Ã  GRBL
+mPages[_P_SD_GRBL_WAIT].pfBase = fSdGrblWaitBase ;   // cette fonction doit provoque l'envoi d'une commande à GRBL
 
 mPages[_P_SD_GRBL].titel = "" ;  // this screen has only 10 buttons instead of 12
 mPages[_P_SD_GRBL].pfBase = fSdGrblBase ;   // cette fonction doit remplir les 4 premiers boutons en fonction des fichiers disponibles
@@ -368,7 +358,7 @@ fillMPage (_P_SD_GRBL , 8 , _PG_NEXT , _JUST_PRESSED , fSdGrblMove , _PG_NEXT) ;
 fillMPage (_P_SD_GRBL , 9 , _INFO , _JUST_PRESSED , fGoToPage , _P_INFO ) ;
 
 mPages[_P_SD_CONFIRM].titel = "" ;  // this screen has only 2 buttons 9 and 10
-mPages[_P_SD_CONFIRM].pfBase = fConfirmYesNoBase ;   // cette fonction doit afficher le texte (et idÃ©alement le nom du message)
+mPages[_P_SD_CONFIRM].pfBase = fConfirmYesNoBase ;   // cette fonction doit afficher le texte (et idéalement le nom du message)
 fillMPage (_P_SD_CONFIRM , 9 , _YES_BTN , _JUST_PRESSED , fConfirmedYes , 0 ) ;
 fillMPage (_P_SD_CONFIRM , 10 , _NO_BTN , _JUST_PRESSED , fConfirmedNo , 0 ) ;
 
@@ -537,7 +527,7 @@ void loadLanguage(void){
   // try to read a language file on sd card
   // if found, copy it to SPIFFSS
   // Read the file from SPIFFSS; if not found, keep names defined in english at compilation
-  // DÃ©code the file and upload data in different arrays (mButton; mText, mGrblErrors, mAlarms)  
+  // Décode the file and upload data in different arrays (mButton; mText, mGrblErrors, mAlarms)  
   char line[200];  // line being read
   int lineIdx = 0;
   char c ;
@@ -559,10 +549,10 @@ void loadLanguage(void){
     if ( c != '\r' && c!='\n') {
       if (c == 0xC3 ) {  // convert accent because tft uses a reduced set of char
         c = language.read() ;
-        if ( c == 0xA9 ) {c = 0x80 ; // Ã©
-        } else if ( c == 0xA4 ) {c = 0x81 ; // Ã¤
-        } else if ( c == 0xB6 ) {c = 0x82 ; // Ã¶
-        } else if ( c == 0xBC ) {c = 0x83 ; // Ã¼
+        if ( c == 0xA9 ) {c = 0x80 ; // é
+        } else if ( c == 0xA4 ) {c = 0x81 ; // ä
+        } else if ( c == 0xB6 ) {c = 0x82 ; // ö
+        } else if ( c == 0xBC ) {c = 0x83 ; // ü
         } else {
           c = '?' ;  // replace unexpect car with ?
         }
@@ -719,5 +709,3 @@ boolean copyLanguage(void){ // copy language.txt from SD to SPIFFS
       Serial.println("[MSG: File language.txt uploaded from SD card]") ;
       return true ;
 }
-
-

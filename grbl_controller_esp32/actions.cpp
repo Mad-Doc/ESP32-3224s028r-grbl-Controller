@@ -73,7 +73,7 @@ uint32_t prevAutoMoveMillis ;
 #define SOFT_RESET 0x18 
 
 void fGoToPage(uint8_t param) {
-  //Serial.print( "go to page : " ) ; Serial.println( param) ; // just for testing // to do
+//  Serial.print( "go to page : " ) ; Serial.println( param) ; // just for testing // to do
   prevPage = currentPage ;
   currentPage = param ;
   updateFullPage = true ; 
@@ -134,13 +134,12 @@ void fReset(uint8_t param) {
 }
 
 void fCancel(uint8_t param) {
-  if( statusPrinting == PRINTING_FROM_SD || statusPrinting == PRINTING_PAUSED || statusPrinting == PRINTING_CMD || statusPrinting == PRINTING_STRING) {
+  if( statusPrinting == PRINTING_FROM_SD || statusPrinting == PRINTING_PAUSED   ) {
     statusPrinting = PRINTING_STOPPED ;
-    pPrintString[0] = '\0';
     closeFileToRead() ;    
     toGrbl( (char) SOFT_RESET) ;
     //Serial2.print( (char) SOFT_RESET) ;
-  } 
+  }  
   currentPage = _P_INFO ;  // go to page Info
   updateFullPage = true ;  // force a redraw even if current page does not change
   waitReleased = true ;          // discard "pressed" until a release 
@@ -206,7 +205,6 @@ void fDist( uint8_t param ) {
 }  
 
 void fMove( uint8_t param ) { // param contains the touch being pressed or the released if no touch has been pressed
-    //Serial.println("running fMove");
     float distance = 0.01 ;
     //uint32_t moveMillis = millis() ;
     //static uint32_t prevMoveMillis ;
@@ -225,9 +223,6 @@ void fMove( uint8_t param ) { // param contains the touch being pressed or the r
         break ;
       case _D10 :
         distance = 10 ;
-        break ;
-      case _D100 :
-        distance = 100 ;
         break ;
       }
       //bufferise2Grbl("\n\r",'b');
@@ -254,10 +249,9 @@ void fMove( uint8_t param ) { // param contains the touch being pressed or the r
         case _AP :  bufferise2Grbl("A")  ;  break ;
         case _AM :  bufferise2Grbl("A-") ;  break ;
       }
-      if (distance == 100 && ( typeOfMove == _ZP || typeOfMove == _ZM ) ) distance =10;  
       char sdistance[20];
       sprintf(sdistance, "%.4f" , distance);
-      bufferise2Grbl(sdistance) ; bufferise2Grbl(" F1000\n", 's');
+      bufferise2Grbl(sdistance) ; bufferise2Grbl(" F100\n", 's');
       //Serial2.print(distance) ; Serial2.println (" F100") ;
       //Serial.print("move for button") ; Serial.print(justPressedBtn) ;Serial.print(" ") ;  Serial.print(distance) ; Serial.println (" F100") ;
       
@@ -576,15 +570,15 @@ void fOverModify (uint8_t BtnParam) {
 
 void fSerial(uint8_t param) { // activate GRBL over Serial2
   // to do ; unactivate other comm and change GrblLink
-  startGrblCom(GRBL_LINK_SERIAL, false);
+  startGrblCom(GRBL_LINK_SERIAL);
 }
 void fBluetooth(uint8_t param) { // activate GRBL over Bluetooth
   // to do ; unactivate other comm and change GrblLink
-  startGrblCom(GRBL_LINK_BT, false);
+  startGrblCom(GRBL_LINK_BT);
 }
 void fTelnet(uint8_t param) { // activate GRBL over Telnet
   // to do ; unactivate other comm and change GrblLink
-  startGrblCom(GRBL_LINK_TELNET, false );
+  startGrblCom(GRBL_LINK_TELNET);
 }
 
 void fSdGrblMove(uint8_t param) {     // param contient _PG_PREV ou _PG_NEXT
@@ -604,7 +598,7 @@ void fSdGrblMove(uint8_t param) {     // param contient _PG_PREV ou _PG_NEXT
           char * lastDirBeginAt ;
           lastDirBeginAt = grblDirFilter + strlen(grblDirFilter) - 2 ; // point to the car before the last one (last is a '/')
           while ( *lastDirBeginAt != '/' && lastDirBeginAt > grblDirFilter) lastDirBeginAt-- ; // search the last '/' before the last position
-          lastDirBeginAt++ ; //point to the first char after '/' 
+          *lastDirBeginAt++ ; //point to the first char after '/' 
           *lastDirBeginAt = '\0' ;  //replace this char by a string terminator
           currentPage = _P_SD_GRBL_WAIT ; // will go to the page that force to read again the file list 
         }    

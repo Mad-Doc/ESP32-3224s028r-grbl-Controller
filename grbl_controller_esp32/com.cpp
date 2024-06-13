@@ -14,6 +14,9 @@
 #include "telnetgrbl.h"
 #include "BluetoothSerial.h"
 #include "bt.h"
+#include <sstream>
+#include <iomanip>
+
 
 // we can also get messages: They are enclosed between [....] ; they are currently discarded but stored in the log. 
 // used to decode the status and position sent by GRBL
@@ -118,6 +121,7 @@ boolean runningFromGrblSd = false ; // indicator saying that we are running a jo
 void getFromGrblAndForward( void ) {   //get char from GRBL, forward them if statusprinting = PRINTING_FROM_PC and decode the data (look for "OK", for <xxxxxx> sentence
                                        // fill machineStatus[] and wposXYZA[]
   #define MAX_LINE_LENGTH_FROM_GRBL 200
+  
   static char lineToDecode[MAX_LINE_LENGTH_FROM_GRBL] = {'\0'} ;
   static uint8_t c;
   //static uint32_t millisLastGetGBL = 0 ;
@@ -127,13 +131,13 @@ void getFromGrblAndForward( void ) {   //get char from GRBL, forward them if sta
 //#define DEBUG_RECEIVED_CHAR
 #ifdef DEBUG_RECEIVED_CHAR      
       Serial.print( (char) c) ;
-      //if  (c == 0x0A) Serial.println(millis()) ;
+      //if  (c == 0x0A || c == 0x0C ) Serial.println(millis()) ;
 #endif      
       if ( statusPrinting == PRINTING_FROM_USB  ) {
         Serial.print( (char) c) ;                         // forward characters from GRBL to PC when PRINTING_FROM_USB
       }
       sendViaTelnet((char) c) ;                   // forward characters from GRBL to telnet when PRINTING_FROM_TELNET
-      if ( c == 0x0A ) {
+      if ( c == 0x0A || c == 0x0C ) {
         lineToDecode[lineToDecodeIdx] = 0 ; // add a 0 to close the string
         //Serial.print("To decode="); Serial.println(lineToDecode);
         decodeGrblLine(lineToDecode) ; // decode the line
@@ -172,11 +176,9 @@ $x=val and $Nx=line indicate a settings printout from a $ and $N user query, res
  */
 
 void decodeGrblLine(char * line){  // decode a full line when CR or LF is received ; line is in lineToDecode 
-  //Serial.print("line len to decode"); Serial.println(strlen(line));
   int lengthLine = strlen(line) ;
   if ( lengthLine == 0) return ;  // Exit if the line is empty
-  if (line[0] == 'o' && line[1] == 'k' && lengthLine <= 4){ // for OK, 
-    //Serial.println("WaitOk = False");
+  if (line[0] == 'o' && line[1] == 'k' && lengthLine == 3){ // for OK, 
     waitOk = false ;
     //cntOk++;
     return;  // avoid to log this line  
@@ -237,10 +239,10 @@ void parseMsgLine(char * line) {  // parse Msg line from GRBL
           parseGrblFilesStatus = PARSING_FILE_NAMES_DONE ; // mark that all lines have been read ; it allows main loop to handle the received list
           //Serial.println("End of lile list");
           //Serial.print("Nr of entries=");Serial.println(grblFileIdx);
-          //int i = 0; 
-          //for ( i  ; i < grblFileIdx ; i++) {
+          int i = 0; 
+          for ( i  ; i < grblFileIdx ; i++) {
             //Serial.print("file ="); Serial.println(grblFileNames[i]);
-          //}
+          }
           
         }
         return; // do not log the SD lines
@@ -333,8 +335,7 @@ void parseSatusLine(char * line) {
 
    char * pBegin ;
    char * pEndType ;
-   //uint8_t i = 0 ;
-   //Serial.print("line="); Serial.println(line);
+   uint8_t i = 0 ;
    //Serial.print("line len") ; Serial.println(strlen(line)); 
    //Serial.print("line[len-2]= "); Serial.println(line[strlen(line) -2]);
    if ( line[strlen(line) -2] != '>' ) return ; // discard if last char is not '>'
@@ -349,20 +350,21 @@ void parseSatusLine(char * line) {
           pEndType = strchr(pBegin , ':') ;
           if (pEndType ) {
               decodeFloat(pEndType+1) ;
+              i = 0 ;
               if ( strncmp( pBegin, "MPos:" , strlen("MPos:") ) == 0 ) {
-                  for (uint8_t i=0 ; i<4 ; i++) {
+                  for (i ; i<4 ; i++) {
                     mposXYZA[i] = decodedFloat[i] ;
                     wposXYZA[i] = mposXYZA[i] - wcoXYZA[i] ;
                     MPosOrWPos = 'M' ;
                   }      
               } else if ( strncmp( pBegin, "WPos:" , strlen("WPos:") )== 0 ) {
-                  for (uint8_t i=0  ; i<4 ; i++) {
+                  for (i ; i<4 ; i++) {
                     wposXYZA[i] = decodedFloat[i] ;
                     mposXYZA[i] = wposXYZA[i] + wcoXYZA[i] ;
                     MPosOrWPos = 'W' ;
                   }  
               } else if ( strncmp( pBegin, "WCO:" , strlen("WCO:") ) ==0 ){
-                  for (uint8_t i=0 ; i<4 ; i++) {
+                  for (i ; i<4 ; i++) {
                       wcoXYZA[i] =  decodedFloat[i] ;
                       if ( MPosOrWPos == 'W') {                  // we previously had a WPos so we update MPos
                         mposXYZA[i] = wposXYZA[i] + wcoXYZA[i] ;  
@@ -396,7 +398,7 @@ void parseSatusLine(char * line) {
           }
       } // exit While
       millisLastGetGBL = millis();
-      newGrblStatusReceived = true;   
+      newGrblStatusReceived = true;     
    } // end if
 }
 
@@ -420,12 +422,294 @@ void decodeFloat(char * pSection) { // decode up to 4 float numbers comma delimi
   }    
 }
 
+/*
+void getFromGrblAndForward2( void ) {   //get char from GRBL, forward them if statusprinting = PRINTING_FROM_PC and decode the data (look for "OK", for <xxxxxx> sentence
+                                       // fill machineStatus[] and wposXYZA[]
+  static uint8_t c;
+  static uint8_t lastC = 0 ;
+  static uint32_t millisLastGetGBL = 0 ;
+  //uint8_t i = 0 ;
+  static int cntOk = 0 ;
+  while (fromGrblAvailable() ) { // check if there are some char from grbl (Serial or Telnet or Bluetooth)
+  //  while (Serial2.Available() ) {
+#ifdef DEBUG_TO_PC
+    //Serial.print(F("s=")); Serial.print( getGrblPosState ); Serial.println() ;
+#endif    
+    c=fromGrblRead() ; // get the char from grbl (Serial or Telnet or Bluetooth)
+    //c=Serial2.read();
+//#define DEBUG_RECEIVED_CHAR
+#ifdef DEBUG_RECEIVED_CHAR      
+      Serial.print( (char) c) ;
+      //if  (c == 0x0A || c == 0x0C ) Serial.println(millis()) ;
+#endif      
+    if ( statusPrinting == PRINTING_FROM_USB  ) {
+      Serial.print( (char) c) ;                         // forward characters from GRBL to PC when PRINTING_FROM_USB
+    }
+    sendViaTelnet((char) c) ;                   // forward characters from GRBL to telnet when PRINTING_FROM_TELNET
+    switch (c) {                                // parse char received from grbl
+    case 'k' :
+      if ( lastC == 'o' ) {
+        waitOk = false ;
+        cntOk++;
+        getGrblPosState = GET_GRBL_STATUS_CLOSED ;
+        break ; 
+      }
+      //break ;   // avoid break here because 'k' can be part of another message
+
+    case '\r' : // CR is sent after "error:xx"
+      if( getGrblPosState == GET_GRBL_STATUS_CLOSED ) {
+        if (  strGrblBuf[0] == 'e' && strGrblBuf[1] == 'r' )   {  // we got an error message or an ALARM message
+          fillErrorMsg( strGrblBuf );           // save the error or ALARM
+        } else if  ( strGrblBuf[0] == 'A' && strGrblBuf[1] == 'L' )  {
+          fillAlarmMsg( strGrblBuf );  
+        }
+        
+      }
+      getGrblPosState = GET_GRBL_STATUS_CLOSED ;
+      strGrblIdx = 0 ;                                        // reset the buffer
+      strGrblBuf[strGrblIdx] = 0 ;
+      break ;
+ 
+    case '<' :
+      getGrblPosState = GET_GRBL_STATUS_START ;
+      strGrblIdx = 0 ;
+      strGrblBuf[strGrblIdx] = 0 ;
+      wposIdx = 0 ;
+      millisLastGetGBL = millis();
+      //Serial.print("LG< =") ; Serial.println( millisLastGetGBL ) ;
+#ifdef DEBUG_TO_PC
+      //Serial.print(" <") ; 
+#endif      
+      break ;
+      
+    case '>' :                     // end of grbl status 
+      handleLastNumericField() ;  //wposXYZA[wposIdx] = atof (&strGrblBuf[0]) ;
+      getGrblPosState = GET_GRBL_STATUS_CLOSED ;
+      strGrblIdx = 0 ;
+      strGrblBuf[strGrblIdx] = 0 ;
+      newGrblStatusReceived = true;
+#ifdef DEBUG_TO_PC
+      //Serial.print("X=") ; Serial.print(wposXYZA[0]) ; Serial.print(" Y=") ; Serial.print(wposXYZA[1]) ;Serial.print(" Z=") ; Serial.println(wposXYZA[2]) ; 
+      //Serial.println(">");
+#endif      
+      break ;
+    case '|' :
+      if ( getGrblPosState == GET_GRBL_STATUS_START ) {
+         getGrblPosState = GET_GRBL_STATUS_WPOS_HEADER ; 
+         memccpy( machineStatus , strGrblBuf , '\0', 9);
+         strGrblIdx = 0;
+         strGrblBuf[strGrblIdx] = 0 ;        
+#ifdef DEBUG_TO_PC
+         //Serial.print( "ms= " ) ; Serial.println( machineStatus ) ;
+#endif          
+      } else if (  getGrblPosState == GET_GRBL_STATUS_MESSAGE ) {
+        if ( strGrblIdx < (STR_GRBL_BUF_MAX_SIZE - 1) 
+        ) {
+          strGrblBuf[strGrblIdx++] = c ;
+          strGrblBuf[strGrblIdx] = 0 ;
+        } 
+      } else { 
+        handleLastNumericField() ;
+        getGrblPosState = GET_GRBL_STATUS_HEADER ;
+        strGrblIdx = 0 ;  
+      }
+      break ;
+    case ':' :
+      if ( getGrblPosState == GET_GRBL_STATUS_WPOS_HEADER ) { // separateur entre field name et value 
+         getGrblPosState = GET_GRBL_STATUS_WPOS_DATA ; 
+         wposOrMpos = strGrblBuf[0] ;       // save the first char of the string that should be MPos or WPos
+         strGrblIdx = 0 ;
+         strGrblBuf[strGrblIdx] = 0 ;
+         wposIdx = 0 ;
+      } else if ( (getGrblPosState == GET_GRBL_STATUS_START || getGrblPosState == GET_GRBL_STATUS_CLOSED || getGrblPosState == GET_GRBL_STATUS_MESSAGE )
+                && strGrblIdx < (STR_GRBL_BUF_MAX_SIZE - 1) ) {    // save the : as part of the text (for error 
+         strGrblBuf[strGrblIdx++] = c ; 
+         strGrblBuf[strGrblIdx] = 0 ;
+      } else if ( getGrblPosState == GET_GRBL_STATUS_HEADER ) {                     // for other Header, check the type of field
+        if ( strGrblBuf[0] == 'F' ) {               // start F or FS data
+          getGrblPosState = GET_GRBL_STATUS_F_DATA ; 
+          strGrblIdx = 0 ;
+          fsIdx = 0 ;
+        } else if ( strGrblBuf[0] == 'W' ) {     // start WCO data
+          getGrblPosState = GET_GRBL_STATUS_WCO_DATA ; 
+          strGrblIdx = 0 ;
+          wcoIdx = 0 ;
+        } else if ( strGrblBuf[0] == 'B' ) {     // start Bf data
+          getGrblPosState = GET_GRBL_STATUS_BF_DATA ; 
+          strGrblIdx = 0 ;
+          bfIdx = 0 ;
+        } else if ( strGrblBuf[0] == 'O' ) {     // start OV data
+          getGrblPosState = GET_GRBL_STATUS_OV_DATA ; 
+          strGrblIdx = 0 ;
+          ovIdx = 0 ;
+        }   
+      }
+      break ;
+    case ',' :                                              // séparateur entre 2 chiffres
+      if ( getGrblPosState != GET_GRBL_STATUS_MESSAGE ) {
+        handleLastNumericField() ;                            // check that we are in data to be processed; if processed, reset strGrblIdx = 0 ; 
+      } else if ( strGrblIdx < (STR_GRBL_BUF_MAX_SIZE - 1) ) {
+        strGrblBuf[strGrblIdx++] = c ;
+        strGrblBuf[strGrblIdx] = 0 ;
+      }
+      
+      break ;  
+    case '[' :                                              // annonce un message
+      if( getGrblPosState == GET_GRBL_STATUS_CLOSED ) {
+        getGrblPosState = GET_GRBL_STATUS_MESSAGE ;                            // check that we are in data to be processed; if processed, reset strGrblIdx = 0 ; 
+        strGrblIdx = 0 ;                                        // reset the buffer
+        strGrblBuf[strGrblIdx] = '[' ;
+        strGrblIdx++ ;
+      }
+      break ;  
+    case ' ' :                                              // 
+      if( ( getGrblPosState == GET_GRBL_STATUS_MESSAGE ) && strGrblIdx < (STR_GRBL_BUF_MAX_SIZE - 1) ){
+        strGrblBuf[strGrblIdx++] = ' ' ;
+      }
+      break ;  
+    
+    case ']' :                                              // ferme le message
+      if( getGrblPosState == GET_GRBL_STATUS_MESSAGE ) {
+        getGrblPosState = GET_GRBL_STATUS_CLOSED ;                            // check that we are in data to be processed; if processed, reset strGrblIdx = 0 ; 
+        strGrblBuf[strGrblIdx++] = ']' ;
+        strGrblBuf[strGrblIdx] = 0 ;
+        memccpy( grblLastMessage , strGrblBuf , '\0', STR_GRBL_BUF_MAX_SIZE - 1);
+        storeGrblState() ;                             // to do Store part of message in memory (G20, G21, ...)
+        strGrblIdx = 0 ;                                        // reset the buffer
+        strGrblBuf[strGrblIdx] = 0 ;
+        grblLastMessageChanged = true ;
+      }
+      break ;  
+    default :
+      if (  strGrblIdx < ( STR_GRBL_BUF_MAX_SIZE - 1)) {
+        if ( ( c =='-' || (c>='0' && c<='9' ) || c == '.' ) ) { 
+          if ( getGrblPosState == GET_GRBL_STATUS_WPOS_DATA || getGrblPosState == GET_GRBL_STATUS_F_DATA || getGrblPosState == GET_GRBL_STATUS_BF_DATA || 
+                  getGrblPosState == GET_GRBL_STATUS_WCO_DATA || getGrblPosState == GET_GRBL_STATUS_START || getGrblPosState == GET_GRBL_STATUS_CLOSED ||
+                  getGrblPosState == GET_GRBL_STATUS_MESSAGE || getGrblPosState == GET_GRBL_STATUS_OV_DATA ){
+            strGrblBuf[strGrblIdx++] = c ;
+            strGrblBuf[strGrblIdx] = 0 ;
+          }
+        } else if ( ( (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ) && ( getGrblPosState == GET_GRBL_STATUS_START || getGrblPosState == GET_GRBL_STATUS_HEADER ||
+                  getGrblPosState == GET_GRBL_STATUS_CLOSED || getGrblPosState == GET_GRBL_STATUS_MESSAGE  || getGrblPosState == GET_GRBL_STATUS_WPOS_HEADER ) ) { 
+           strGrblBuf[strGrblIdx++] = c ;
+           strGrblBuf[strGrblIdx] = 0 ;
+        }
+      }
+    } // end switch 
+    parseToLog(c , lastC ) ;
+    lastC = c ;
+  } // end while
+  
+  if ( (millis() - millisLastGetGBL ) > 2500 ) {           // if we did not get a GRBL status since 2500 ms, status become "?"
+    machineStatus[0] = '?' ; machineStatus[1] = '?' ; machineStatus[2] = 0 ; 
+    //Serial.print( "force reset ") ; Serial.print( millis()) ; Serial.print( " LG> = ") ; Serial.print( millis()) ;
+    millisLastGetGBL = millis() ;
+    newGrblStatusReceived = true ;                            // force a redraw if on info screen  
+  }
+}
+*/
+/*
+void parseToLog(uint8_t c , uint8_t lastC) {   // do not store in log the OK and the status message.
+  //Serial.print("To Parse "); Serial.print( (char) c , HEX) ; Serial.print(" , "); Serial.println( (char) c) ;
+  if ( getGrblPosState == GET_GRBL_STATUS_CLOSED ) {
+    if (c == 'o' && lastC != 'o') {
+      return ; // skip 'o' because next char can be K (for an OK) 
+    }
+    if ( lastC == 'o' ) {
+      if ( c == 'k' ) {
+        return ; // skip k as part of OK
+      } else {
+        logBufferWrite(lastC) ; // save previous 'o' when not part of OK
+      }  
+    } 
+    if ( c == '>' ) {
+      return ; // skip '>' as begin of status
+    }
+    if ( c == '\r' ) {
+      if ( lastC == '>' || lastC == 'k' ) {
+        // skip return after a status line or a OK
+      } else {
+        logBufferWrite( BUFFER_EOL) ; // replace "new line " by 0 for string handling
+      }  
+    } else {
+      logBufferWrite( c) ;
+    } 
+  } else if ( getGrblPosState == GET_GRBL_STATUS_MESSAGE ) {
+    logBufferWrite( c) ;
+  } 
+}
+*/
+/*
+void handleLastNumericField(void) { // decode last numeric field
+  float temp = atof (&strGrblBuf[0]) ;
+  if (  getGrblPosState == GET_GRBL_STATUS_WPOS_DATA && wposIdx < 4) {
+          if ( wposOrMpos == 'W') {                  // we got a WPos
+            wposXYZA[wposIdx] = temp ;
+            mposXYZA[wposIdx] = wposXYZA[wposIdx] + wcoXYZA[wposIdx] ;
+          } else {                                   // we got a MPos
+            mposXYZA[wposIdx] = temp ;
+            wposXYZA[wposIdx] = mposXYZA[wposIdx] - wcoXYZA[wposIdx] ;
+          }
+          wposIdx++ ;
+          strGrblIdx = 0 ; 
+  } else if (  getGrblPosState == GET_GRBL_STATUS_F_DATA && fsIdx < 2) {
+          feedSpindle[fsIdx++] = temp ;
+          strGrblIdx = 0 ;
+  } else if (  getGrblPosState == GET_GRBL_STATUS_BF_DATA && bfIdx < 2) {   // save number of available block or char in GRBL buffer
+          bufferAvailable[bfIdx++] = temp ;
+          strGrblIdx = 0 ; 
+  } else if (  getGrblPosState == GET_GRBL_STATUS_WCO_DATA && wcoIdx < 4) {
+          wcoXYZA[wcoIdx] = temp ;
+          if ( wposOrMpos == 'W') {                  // we previously had a WPos so we update MPos
+            mposXYZA[wcoIdx] = wposXYZA[wcoIdx] + wcoXYZA[wcoIdx] ;  
+          } else {                                   // we previously had a MPos so we update WPos
+            wposXYZA[wcoIdx] = mposXYZA[wcoIdx] - wcoXYZA[wcoIdx] ;
+          }
+          
+          wcoIdx++ ;
+          strGrblIdx = 0 ;
+  } else if (  getGrblPosState == GET_GRBL_STATUS_OV_DATA && ovIdx < 3) {   // save number of available block or char in GRBL buffer
+          overwritePercent[ovIdx++] = temp ;
+          strGrblIdx = 0 ; 
+  } 
+}
+*/
+/*
+void storeGrblState(void) { // search for some char in message
+  char * pBuf =  strGrblBuf + 5 ;
+  char * pSearch ;
+  char * pEndNumber1 ; // point to the first ','
+  char * pEndNumber2 ; // point to the second ','
+  if ( strGrblBuf[1] == 'G' && strGrblBuf[2] == 'C' && strGrblBuf[3] == ':'  ) { // GRBL reply to a $G with [GC:G20 ....]
+    pSearch = strstr( pBuf , "G2" ) ; // can be G20 or G21
+    if (pSearch != NULL ) memcpy( modalAbsRel , pSearch , 3) ;
+    pSearch = strstr( pBuf , "G90" ) ;
+    if (pSearch != NULL ) memcpy( modalMmInch , pSearch , 3) ;
+    pSearch = strstr( pBuf , "G91" ) ;
+    if (pSearch != NULL ) memcpy( modalMmInch , pSearch , 3) ;
+    //Serial.print("AbsRel= " ) ; Serial.println( modalAbsRel) ;
+    //Serial.print("MmInch= " ) ; Serial.println( modalMmInch) ;  
+  } else if (strGrblBuf[1] == 'G' && strGrblBuf[2] == '3' && strGrblBuf[3] == '0'  ) {  // GRBL reply to $# with e.g. [G28:1.000,2.000,0.000] or [G30:4.000,6.000,0.000]
+    pEndNumber1 = strstr(pBuf , ",") ; // find the position of the first ','
+    if (pEndNumber1 != NULL ) { 
+      memcpy( G30SavedX , pBuf , pEndNumber1 - pBuf) ;
+      G30SavedX[pEndNumber1 - pBuf] = 0 ;
+      pEndNumber1++ ; // point to the first char of second number
+      pEndNumber2 = strstr(pEndNumber1 , ",") ; // find the position of the second ','
+      if (pEndNumber2 != NULL ) {
+        memcpy( G30SavedY , pEndNumber1 , pEndNumber2 - pEndNumber1) ;
+        G30SavedY[pEndNumber2 - pEndNumber1] = 0 ;
+      }
+    }  
+  }
+}
+*/
+
 void resetWaitOkWhenSdMillis() {    // after a resume (after a pause), we reset this time to avoid wrong warning
   waitOkWhenSdMillis = millis()  + WAIT_OK_SD_TIMEOUT ;  // wait for 2 min before generating the message again
 }
-//*****************************************************************************************
+
 //-----------------------------  Send ------------------------------------------------------
-//*****************************************************************************************
 void sendToGrbl( void ) {   
                                     // set statusPrinting to PRINTING_STOPPED if eof; exit if we wait an OK from GRBL; 
                                     // if statusPrinting = PRINTING_FROM_USB or PRINTING_FRM_TELNET, then get char from USB or Telnet and forward it to GRBL.
@@ -473,7 +757,6 @@ void sendToGrbl( void ) {
     currSendMillis = millis() ;                   // ask GRBL current status every X millis sec. GRBL replies with a message with status and position
     if ( currSendMillis > nextSendMillis) {
        nextSendMillis = currSendMillis + 300 ;
-       //Serial.println("Send ?");
        toGrbl('?') ; 
     }
   }
@@ -487,7 +770,7 @@ void sendToGrbl( void ) {
 void sendFromSd() {        // send next char from SD; close file at the end
       int sdChar ;
       waitOkWhenSdMillis = millis()  + WAIT_OK_SD_TIMEOUT ;  // set time out on 
-      while ( aDir[dirLevel+1].available() > 0 && (! waitOk) && statusPrinting == PRINTING_FROM_SD && ( (grblLink == GRBL_LINK_SERIAL)?Serial2.availableForWrite() > 2: true) ) {
+      while ( aDir[dirLevel+1].available() > 0 && (! waitOk) && statusPrinting == PRINTING_FROM_SD && Serial2.availableForWrite() > 2 ) {
           sdChar = aDir[dirLevel+1].read() ;
           if ( sdChar < 0 ) {
             statusPrinting = PRINTING_ERROR  ;
@@ -517,9 +800,9 @@ void sendFromSd() {        // send next char from SD; close file at the end
 void sendFromCmd() {
     int sdChar ;
     waitOkWhenSdMillis = millis()  + WAIT_OK_SD_TIMEOUT ;  // set time out on 
-    while ( spiffsAvailableCmdFile() > 0 && (! waitOk) && statusPrinting == PRINTING_CMD && ( ( grblLink ==GRBL_LINK_SERIAL) ? Serial2.availableForWrite() > 2 : true )) {
+    while ( spiffsAvailableCmdFile() > 0 && (! waitOk) && statusPrinting == PRINTING_CMD && Serial2.availableForWrite() > 2 ) {
       sdChar = (int) spiffsReadCmdFile() ;
-        if( sdChar != 13 && sdChar != ' ' ){             // 13 = carriage return; do not send the space.
+      if( sdChar != 13){
           toGrbl((char) sdChar ) ;
           //Serial2.print( (char) sdChar ) ;
         }
@@ -535,80 +818,67 @@ void sendFromCmd() {
     }      
 }
 
-void sendFromString(){
-    char strChar ;   
-    float savedWposXYZA[4] ; 
-    waitOkWhenSdMillis = millis()  + WAIT_OK_SD_TIMEOUT ;  // set time out on 
-    while ( *pPrintString != 0 && (! waitOk) && statusPrinting == PRINTING_STRING  ) {
-      strChar = *pPrintString ++;
-      if ( strChar == '%' ) {
-         strChar = *pPrintString ++;
-         switch (strChar) { 
-         case 'z' : // save Z WCO
-            //savedWposXYZA[2] = wposXYZA[2] ;
-            preferences.putFloat("wposZ" , wposXYZA[2] ) ;
-            //Serial.print( "wpos Z is saved with value = ") ; Serial.println( wposXYZA[2] ) ; // to debug
-            break;
-         case 'X' : // Put the G30 X offset
-            //Serial.print("G30SavedX"); Serial.println(G30SavedX);
-            toGrbl(G30SavedX) ;
-            //Serial2.print(G30SavedX) ;
-            break;
-         case 'Y' : // Put the G30 Y offset
-            toGrbl(G30SavedY) ;
-            //Serial2.print(G30SavedY) ;
-            break;
-         case 'Z' : // Put some char in the flow
-            savedWposXYZA[2] = preferences.getFloat("wposZ" , 0 ) ; // if wposZ does not exist in preferences, the function returns 0
-            char floatToString[20] ;
-            gcvt(savedWposXYZA[2], 3, floatToString); // convert float to string
-            toGrbl(floatToString) ;
-            //Serial2.print(floatToString) ;
-            //Serial.print( "wpos Z is retrieved with value = ") ; Serial.println( floatToString ) ; // to debug
-            break;
-         case 'M' : // Restore modal G20/G21/G90/G91
-            toGrbl(modalAbsRel) ;
-            //Serial2.print( modalAbsRel) ;
-            //Serial.print( modalAbsRel) ; // to debug
-            toGrbl(modalMmInch) ;
-            //Serial2.print( modalMmInch) ;
-            //Serial.print( modalMmInch) ; // to debug
-            break;
-         }   
-      } else {
-          if( strChar != 13 && strChar != ' ' ){             // 13 = carriage return; do not send the space.
-            toGrbl((char) strChar) ;
-            //Serial2.print( strChar ) ;
-            //Serial.print (strChar) ;  // to debug
-          }
-        if ( strChar == '\n' ) {
-             waitOk = true ;
-          }
-      }    
-    } // end while
-    //Serial.println("End while"); // to debug
-    //Serial.println( *printString , HEX );
-    if ( *pPrintString == 0 ) { // we reached the end of the string 
-      statusPrinting = PRINTING_STOPPED  ; 
-      fillStringExecuteMsg( lastStringCmd );   // fill with a message saying the command has been executed
-      updateFullPage = true ;           // force to redraw the whole page because the buttons haved changed
-      toGrbl((char) 0x0A ) ;
-      //Serial2.print( (char) 0x0A ) ; // sent a new line to be sure that Grbl handle last line.
-      //Serial.println("last char has been sent") ;
-    }      
+void sendFromString() {
+char strChar;
+float savedWposXYZA[4];
+waitOkWhenSdMillis = millis() + WAIT_OK_SD_TIMEOUT;
+
+while (*pPrintString != 0 && (!waitOk) && statusPrinting == PRINTING_STRING) {
+    strChar = *pPrintString++;
+    if (strChar == '%') {
+        strChar = *pPrintString++;
+        switch (strChar) {
+            case 'z':
+                preferences.putFloat("wposZ", wposXYZA[2]);
+                break;
+            case 'X':
+                toGrbl(G30SavedX);
+                break;
+            case 'Y':
+                toGrbl(G30SavedY);
+                break;
+            case 'Z':
+                savedWposXYZA[2] = preferences.getFloat("wposZ", 0);
+                {
+                    std::ostringstream ss;
+                    ss << std::fixed << std::setprecision(3) << savedWposXYZA[2];
+                    std::string floatToString = ss.str();
+                    const char* charPtr = floatToString.c_str();
+                    toGrbl(charPtr);
+                }
+                break;
+            case 'M':
+                toGrbl(modalAbsRel);
+                toGrbl(modalMmInch);
+                break;
+        }
+    } else {
+        if (strChar != 13 && strChar != ' ') {
+            toGrbl((char)strChar);
+        }
+        if (strChar == '\n') {
+            waitOk = true;
+        }
+    }
+}
+
+if (*pPrintString == 0) {
+    statusPrinting = PRINTING_STOPPED;
+    fillStringExecuteMsg(lastStringCmd);
+    updateFullPage = true;
+    toGrbl((char)0x0A);
+}
+
 }
 
 void sendJogCancelAndJog(void) {
     static uint32_t exitMillis ;
     if ( jogCancelFlag ) {
-      //Serial.println("jogCancelFlag is true");
       if ( jog_status == JOG_NO ) {
         //Serial.println("send a jog cancel");
         toGrbl((char) 0x85) ; toGrbl("G4P0\n\r") ;
         //Serial2.print( (char) 0x85) ; Serial2.print("G4P0") ; Serial2.print( (char) 0x0A) ;    // to be execute after a cancel jog in order to get an OK that says that grbl is Idle.
-        if (grblLink == GRBL_LINK_SERIAL) {
-          while (Serial2.availableForWrite() != 0x7F ) ;                        // wait that all char are sent 
-        }
+        while (Serial2.availableForWrite() != 0x7F ) ;                        // wait that all char are sent 
         //Serial2.flush() ;             // wait that all outgoing char are really sent.!!! in ESP32 it also clear the RX buffer what is not expected in arduino logic
         
         waitOk = true ;
@@ -756,9 +1026,7 @@ boolean sendJogCmd(uint32_t startTime) {
                 
         bufferise2Grbl(" F"); bufferise2Grbl(sspeedMove);bufferise2Grbl("\n\r",'s') ;
         //Serial2.print(" F"); Serial2.print(speedMove); Serial2.print( (char) 0x0A) ;
-        if (grblLink == GRBL_LINK_SERIAL) {
-          while (Serial2.availableForWrite() != 0x7F ) ;                        // wait that all char are sent 
-        }
+        while (Serial2.availableForWrite() != 0x7F ) ;                        // wait that all char are sent 
         //Serial2.flush() ;       // wait that all char are really sent
         
         //Serial.print("Send cmd jog " ); Serial.print(distanceMove) ; Serial.print(" " ); Serial.print(speedMove) ;Serial.print(" " ); Serial.println(millis() - startTime );
@@ -779,9 +1047,14 @@ void fillAlarmMsg( const char * alarmMsg ) {   //alarmMsg contains "ALARM:xx"
 }
 */
 void fillStringExecuteMsg( uint8_t buttonMessageIdx ) {   // buttonMessageIdx contains the number of the button
+   //Serial.print("param= ") ; Serial.println(buttonMessageIdx ) ;  // to debug
    if ( buttonMessageIdx >= _SETX || buttonMessageIdx <= _GO_PROBE) {
+      buttonMessageIdx -= _SETX ;
+      //fillMsg( stringExecuteMsg[buttonMessageIdx] , BUTTON_TEXT ) ;
       fillMsg( buttonMessageIdx - _SETX +  _SETX_EXECUTED , SCREEN_NORMAL_TEXT ) ;
    } else {
+      //buttonMessageIdx = _GO_PROBE - _SETX + 1 ;
+      //fillMsg( stringExecuteMsg[buttonMessageIdx] ) ;
       fillMsg( _UNKNOWN_BTN_EXECUTED , SCREEN_NORMAL_TEXT ) ;
    }
    //Serial.print("index of table= ") ; Serial.println(buttonMessageIdx ) ;  // to debug
@@ -807,7 +1080,7 @@ void toGrbl(const char * data){ // send one string to GRBL on Serial, Bluetooth 
  switch (grblLink) {
     case GRBL_LINK_SERIAL:
       Serial2.print(data);
-      //Serial.print("send buffer="); Serial.println(data);
+      Serial.print("send buffer="); Serial.println(data);
       break;
     case GRBL_LINK_BT :
       toBt(data);
@@ -830,6 +1103,8 @@ void bufferise2Grbl(const char * data , char beginEnd){  // group data in a buff
   if (beginEnd == 'b') {
     bufferIdx = 0;
     buffer[bufferIdx] = '\0' ;
+    //Serial.println("begin to buffer");
+    //delay(100);
   }
   uint8_t i = 0;
   while ( ( data[i] != '\0') && ( i < 254 ) && (bufferIdx < 255 )) {
@@ -838,89 +1113,69 @@ void bufferise2Grbl(const char * data , char beginEnd){  // group data in a buff
     buffer[bufferIdx] = '\0' ;
     i++;
   }
+  //Serial.print("buffer=") ; Serial.println(buffer);
+  //delay(100);
   if (beginEnd == 's') {
-    //Serial.print("sending buf="); Serial.print(buffer); Serial.println("EndOfText");
+    Serial.print("sending buf="); Serial.print(buffer); Serial.println("EndOfText");
     toGrbl(buffer) ;
   }
 }
 
 
 int fromGrblAvailable(){    // return the number of char in the read buffer
-  int availableChar = 0 ;
   switch (grblLink) {
     case GRBL_LINK_SERIAL:
       //Serial.print("serial2 Avail="); Serial.println(Serial2.available());
-      availableChar = Serial2.available();
+      return Serial2.available();
       break;
     case GRBL_LINK_BT :
       //Serial.println("BT available?");
-      availableChar = SerialBT.available();
+      return SerialBT.available();
       break;
     case GRBL_LINK_TELNET :
-      availableChar = fromTelnetAvailable();
+      return fromTelnetAvailable();
       break;
-  }
-  return availableChar;
+  } 
 }
 
 int fromGrblRead(){       // return the first character in the read buffer
-  int firstChar = -1;
   switch (grblLink) {
     case GRBL_LINK_SERIAL:
-      firstChar = Serial2.read();
-      break;
+      
+      return Serial2.read();
     case GRBL_LINK_BT :
       //Serial.println("read BT"); 
-      firstChar = SerialBT.read();
-      break;
+      return SerialBT.read();
     case GRBL_LINK_TELNET :
-      firstChar = fromTelnetRead();
-      break ;
+      return fromTelnetRead();
   }
-  return firstChar ;
 }
 
 
-void startGrblCom(uint8_t comMode , boolean forceStart){
+void startGrblCom(uint8_t comMode){
   preferences.putChar("grblLink", comMode) ;
-  //Serial.print("in startGrblCom grblLink = ");Serial.println(grblLink); delay(200);
-  //Serial.print("in startGrblCom comMode = ");Serial.println(comMode); delay(200);
-  
   // First stop BT or Telnet
-  if (grblLink == GRBL_LINK_SERIAL  && comMode != grblLink ) {
-    Serial2.end(); // disable UART because USB on GRBL_ESP32 use also the UART
-    pinMatrixOutDetach(SERIAL2_TXPIN    , false, false);
-    pinMode( SERIAL2_TXPIN , INPUT);
-    //Serial.println("in startGrblCom Serial has been stopped"); delay(200);
-  }else if (grblLink == GRBL_LINK_BT  && comMode != grblLink){
-    //Serial.println("in startGrblCom we will stop bt"); delay(200);
+  if (grblLink == GRBL_LINK_BT){
+    //Serial.println("in startGrblCom we will stop bt");
+    //delay(200);
     btGrblStop();
-    //Serial.println("in startGrblCom bt has been stopped"); delay(200); 
-  } else if (grblLink == GRBL_LINK_TELNET && comMode != grblLink) {
-    //Serial.println("in startGrblCom we will stop telnet"); delay(200);
+    //Serial.println("in startGrblCom bt has been stopped");
+    //delay(200); 
+  } else if (grblLink == GRBL_LINK_TELNET) {
     telnetGrblStop();
-    //Serial.println("in startGrblCom telnet has been stopped"); delay(200);
   }
-  if (comMode == GRBL_LINK_SERIAL  && ( comMode != grblLink || forceStart ) ) {
+  if (comMode == GRBL_LINK_SERIAL) {
     grblLink = GRBL_LINK_SERIAL ;
-    Serial2.begin(115200, SERIAL_8N1, SERIAL2_RXPIN, SERIAL2_TXPIN); // initialise le port série vers grbl
-    Serial2.setRxBufferSize(1024);
-    pinMode (SERIAL2_RXPIN, INPUT_PULLUP ); // added to force a level when serial wire is not connected
     while (Serial2.available()>0) Serial2.read() ; // clear the serial2 buffer
-    //Serial.println("in startGrblCom Serial has been started"); delay(200);
-    fillMsg(_GRBL_SERIAL_CONNECTED);  
-  } else if ( comMode == GRBL_LINK_BT  && (comMode != grblLink || forceStart ) ) {
+    //fillMsg(_GRBL_SERIAL_CONNECTED);  
+  } else if (comMode == GRBL_LINK_BT) {
     grblLink = GRBL_LINK_BT ;
     //Serial.println("in startGrblCom we call btgrblInit");
     //delay(200);
     btGrblInit();
-    //Serial.println("in startGrblCom BT has been started"); delay(200);
-    
-  } else if ( comMode == GRBL_LINK_TELNET   && ( comMode != grblLink || forceStart ) ){
+  } else if (comMode == GRBL_LINK_TELNET) {
     grblLink = GRBL_LINK_TELNET ;
     telnetGrblInit();
-    //Serial.println("in startGrblCom telnet has been started"); delay(200);
-    
   }  
 }
 
