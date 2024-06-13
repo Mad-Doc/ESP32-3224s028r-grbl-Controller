@@ -1,17 +1,19 @@
-// compilé dans mon cas avec la board WEMOS LOLIN32
-
+// modifier pour ESP32-3224s028r !
 // attention: pour recevoir tous les caractères envoyés par GRBL en réponse à $$, il faut augmenter la taille du buffer des Serial
 // pour cela, on peut employer une fonction prévue Serial2.setRxBufferSize(size_t)
-
+// version de la libraire esp32 = 1.0.4 sinon ne compile pas !
 // to do
 
 // permettre l'accès au contenu du fichier SD seulement si le statut est print from SD en pause. 
 
 // prévoir de pouvoir faire un "continue" quand on a une pause alors que l'on est en train d'envoyer des CMD ou des STRING vers GRBL 
+// prévoir des icones pour les boutons; on peut créer des charactères en format RLE
 // sans doute autoriser des déplacements en jog (avec la nunchuk notamment) si le statut est en HOLD ou en DOOR? (actuellement seul les statuts Jog et Idle sont autorisés pour la nunchuk
 // déplacer les tests relatifs à la place restant dans le serial2 bufferwrite dans la fonction qui regroupe les transmissions à grbl - voir plusieurs fois (Serial2.availableForWrite() != 0x7F ) 
 // afficher un message sur le tft si la liaison telnet ou BT vers grbl est demandée mais ne s'active pas
 // afficher un message sur le tft si la liaison telnet ou BT vers grbl est demandée mais est perdue (? comment détecter une liaison telnet perdue?)
+// à voir: ajouter un paramètre dans config pour dire si on utilise GRBL_ESP32, et si oui, quel sont les noms de BT sur cet ESP32 et sur GRBL_ESP32 et l'adresse (ou nom du serveur) telnet 
+// remplacer certains messages envoyés à Serial par des messages affichés au TFT notamment au sujet des (dé)connectios de BT et Telnet vers GRBL.
 // quel statut appliquer pendant l'exécution d'un print via sd grbl? Quel blocage implémenter. Commennt reconnaître la fin. Voir si le % donné dans la ligne de statut est valable 
 // ajouter des libellés de code d'erreur dans langage. Attention: il y a plus d'erreur et pas mal de trous. Il faut peut être changer le système par exemple en les stockant dans preference.
 // voir les modifs faites par bradley pour éviter certains warnings; voir ce qu'il a fait pour éviter la perte du telnet au démarrage suite au reset
@@ -24,10 +26,13 @@
 // afficher le nom du fichier en cas d'usinage via la carte GRBL SD
 // le move au clavier ne marche pas toujours : grbl retourne une erreur 8 
 // avec l'impression via grbl SD, quand on fait pause, l'écran doit être adapté (ne pas montrer l'icone show gcode) et certaines fonctions aussi (sans doute Cancel et Resume)
+// ajouter Overwrite sur l'écran More
 // durant l'impression, afficher le nbr de min depuis le début (ne pas compter quand c'est en pause.
 // pouquoi ne peut-on pas faire un move qaund on est en pause (l'icone est présente mais semble ne pas focntionner)
 // quand le PC est relié via serial à la carte grbl, il semble que les commandes $$ du pc ne passent pas.(alors que le pc recôit bien les répônses au ? envoyé par le TFT
-// vérifier si le pause provoque l'arrêt du moteur (d'après la doc grbl ce n'est pas le cas; peut être cela a t'il été ajouté dans la version STM32)
+// prévoir de pouvoir définir des icones pour les boutons personnalisés
+// retier le bouton MOVE de l'écran MORE; ajouter OVEWRITE; retirer le bouton Resume
+// pour l'écran d'accueil prévoir l'utilisation du fichier langage (actuellement codé dans browser et draw.
 /*
 Gestion r-cnc avec touch screen et esp32 avec carte sd.
 
@@ -140,14 +145,11 @@ uint32_t sdNumberOfCharSent ;
 
 
 //         Commande à exécuter
-char cmdName[11][17] ;     // store the names of the commands to be displayed on the button
-uint8_t cmdIcons[11][1300] ;    // store the icons of the commands buttons (if any) 1300 = an icon of 100X100
-boolean cmdIconExist[11];       // store a flag to say if an icon exist or not for a cmd
+char cmdName[11][17] ;     // store the names of the commands
 uint8_t cmdToSend = 0 ;   //store the cmd to be send to grbl
 
 //         printing status
 uint8_t statusPrinting = PRINTING_STOPPED ;
-
 
 // grbl data
 boolean newGrblStatusReceived = false ;
@@ -198,13 +200,13 @@ void setup() {
   //Serial.print(" setup: rxfifo size before interrupt="); Serial.println(dev->conf1.rxfifo_full_thrhd) ;
   
     // initialise le port série vers grbl
-  //Serial2.begin(115200, SERIAL_8N1, SERIAL2_RXPIN, SERIAL2_TXPIN); // initialise le port série vers grbl
-  //Serial2.setRxBufferSize(1024);
-  //pinMode (SERIAL2_RXPIN, INPUT_PULLUP ); // added to force a level when serial wire is not connected
+  Serial2.begin(115200, SERIAL_8N1, SERIAL2_RXPIN, SERIAL2_TXPIN); // initialise le port série vers grbl
+  Serial2.setRxBufferSize(1024);
+  pinMode (SERIAL2_RXPIN, INPUT_PULLUP ); // added to force a level when serial wire is not connected
   //pinMode(TFT_LED_PIN , OUTPUT) ;
   //digitalWrite(TFT_LED_PIN , HIGH) ;
   
-  if (! spiffsInit() ) {   // try to load the cmd in memory when the files exist in spiffs (the names and the icons)
+  if (! spiffsInit() ) {   // try to load the cmd in memory when the files exist in spiffs 
     fillMsg(_SPIFFS_FORMATTED , SCREEN_NORMAL_TEXT ) ;
   } else {
     if (! cmdNameInit() ) {
@@ -219,7 +221,7 @@ void setup() {
   grblLink = preferences.getChar("grblLink", GRBL_LINK_SERIAL) ; // retrieve the last used way of communication with GRBL
   dirLevel = -1 ;   // negative value means that SD card has to be uploaded
 
-  nunchuk_init() ; 
+  //nunchuk_init() ; 
   prevPage = _P_NULL ;     
   currentPage = _P_INFO ;
   updateFullPage = true ;
@@ -235,8 +237,6 @@ void setup() {
 //  grblLastMessage[2]= 0x82 ;
 //  grblLastMessage[3]= 0x83 ;
   clearScreen() ;
-  startGrblCom(grblLink, true);
-  /*
   if (grblLink == GRBL_LINK_SERIAL) {
       while (Serial2.available()>0) Serial2.read() ; // clear the serial2 buffer
       toGrbl( (char) 0x18 ) ;  // send a soft reset
@@ -248,16 +248,10 @@ void setup() {
       btGrblInit();  // this start the connection over Bluetooth
   }
   // Configure Grbl
-   */
-  if (grblLink == GRBL_LINK_SERIAL ) {
-    toGrbl( (char) 0x18 ) ;  // send a soft reset at start up when in serial mode (not sure it can be done in other mode)
-    delay(100); 
-  }
   toGrbl("$10=3\n\r");
   //Serial2.println("$10=3");   // $10=3 is used in order to get available space in GRBL buffer in GRBL status messages; il also means we are asking GRBL to sent always MPos.
   delay(200);    // wait that all char are sent
-  //while (Serial2.availableForWrite() != 0x7F ) ;                        // wait that all char are sent
-   
+  //while (Serial2.availableForWrite() != 0x7F ) ;                        // wait that all char are sent 
 }
 
 //******************************** Main loop ***************************************
@@ -271,7 +265,6 @@ void loop() {
 // Si on a reçu de nouvelles données de GRBL, active un flag pour faire un réaffichage partiel de l'écran
 // réaffiche l'écran (complètement ou partiellement) et fait un reset de flags
 //#if defined ( ESP32_ACT_AS_STATION ) || defined (ESP32_ACT_AS_AP)
-  static char prevMachine = '?';
   if ( wifiType > 0) {   // handle the wifi if foreseen
     processWifi();
     checkTelnetConnection();
@@ -284,11 +277,7 @@ void loop() {
   } 
  updateBtnState();  // check touch screen and update justPressedBtn ,justReleasedBtn , longPressedBtn and beginChangeBtnMillis
  drawUpdatedBtn() ;        // update color of button if pressed/released, apply actions foreseen for buttons (e.g. change currentPage) 
- if ( waitReleased == true && justReleasedBtn ) {
-  waitReleased = false ;
- } else if ( waitReleased == false) {
-  executeMainActionBtn () ;  
- }
+ executeMainActionBtn () ; // 
 
  // handle nunchuk if implemented
   if ( nunchukOK && statusPrinting == PRINTING_STOPPED && ( machineStatus[0] == 'I' || machineStatus[0] == 'J' || machineStatus[0] == '?') )  {  //read only if the GRBL status is Idle or Jog or ?? (this last is only for testing without GRBL
@@ -307,31 +296,27 @@ void loop() {
   }
 
   if (newGrblStatusReceived == true) {
-    if ( prevMachine != machineStatus[0] ) {  // when machinestatus changes, it happens that we have to change the statusprinting
-                                                  // it is important to check that there is a change because it can be that we receive a (late) status in reply to an ? send before last change of statusprinting
-        if ( ( runningFromGrblSd ) && (machineStatus[0] == 'H' ) && ( statusPrinting == PRINTING_STOPPED || statusPrinting == PRINTING_FROM_GRBL ) ){
-          statusPrinting = PRINTING_FROM_GRBL_PAUSED ;
-          updateFullPage = true ; // We want to update the buttons
-        } else if ( ( runningFromGrblSd ) && (machineStatus[0] != 'H' ) && ( statusPrinting == PRINTING_STOPPED || statusPrinting == PRINTING_FROM_GRBL_PAUSED ) ){
-          statusPrinting = PRINTING_FROM_GRBL ;
-          updateFullPage = true ; // We want to update the buttons
-        } else if ( ( runningFromGrblSd == false ) && ( statusPrinting == PRINTING_FROM_GRBL || statusPrinting == PRINTING_FROM_GRBL_PAUSED)){
-         statusPrinting = PRINTING_STOPPED ;
-         updateFullPage = true ; // We want to update the buttons 
-        } else if( statusPrinting == PRINTING_FROM_SD  && machineStatus[0] == 'H' ) { // If printing from SD and GRBL is paused
-          // set PRINTING_PAUSED
-          statusPrinting = PRINTING_PAUSED ;
-          updateFullPage = true ; // We want to get the resume button 
-        } else if( statusPrinting == PRINTING_PAUSED  && machineStatus[0] != 'H' ) { // If pause et not hold
-          // set PRINTING_PAUSED
-          statusPrinting = PRINTING_FROM_SD ;
-          updateFullPage = true ; // We want to get the resume button
-        }
-    }       
-    if ( currentPage == _P_INFO || currentPage == _P_MOVE || currentPage == _P_SETXYZ || currentPage == _P_SETUP || currentPage == _P_TOOL 
+    if ( ( runningFromGrblSd ) && (machineStatus[0] == 'H' ) && ( statusPrinting == PRINTING_STOPPED || statusPrinting == PRINTING_FROM_GRBL ) ){
+      statusPrinting = PRINTING_FROM_GRBL_PAUSED ;
+      updateFullPage = true ; // We want to update the buttons
+    } else if ( ( runningFromGrblSd ) && (machineStatus[0] != 'H' ) && ( statusPrinting == PRINTING_STOPPED || statusPrinting == PRINTING_FROM_GRBL_PAUSED ) ){
+      statusPrinting = PRINTING_FROM_GRBL ;
+      updateFullPage = true ; // We want to update the buttons
+    } else if ( ( runningFromGrblSd == false ) && ( statusPrinting == PRINTING_FROM_GRBL || statusPrinting == PRINTING_FROM_GRBL_PAUSED)){
+     statusPrinting = PRINTING_STOPPED ;
+     updateFullPage = true ; // We want to update the buttons 
+    } else if( statusPrinting == PRINTING_FROM_SD  && machineStatus[0] == 'H' ) { // If printing from SD and GRBL is paused
+      // set PRINTING_PAUSED
+      statusPrinting = PRINTING_PAUSED ;
+      updateFullPage = true ; // We want to get the resume button 
+    } else if( statusPrinting == PRINTING_PAUSED  && machineStatus[0] != 'H' ) { // If printing from SD and GRBL is paused
+      // set PRINTING_PAUSED
+      statusPrinting = PRINTING_STOPPED ;
+      updateFullPage = true ; // We want to get the resume button 
+    } else if ( currentPage == _P_INFO || currentPage == _P_MOVE || currentPage == _P_SETXYZ || currentPage == _P_SETUP || currentPage == _P_TOOL 
               || currentPage == _P_OVERWRITE || currentPage == _P_COMMUNICATION) { //force a refresh if a message has been received from GRBL and we are in a info screen or in a info screen
         updatePartPage = true ;
-    } 
+    } // end else if
   }
       
   newGrblStatusReceived = false ;
@@ -342,18 +327,18 @@ void loop() {
   
   if (  ( updateFullPage ) ) {
     drawFullPage() ; 
+
   } else if ( updatePartPage ) {   
-    drawPartPage() ;                           // si l'écran doit être mis à jour, exécute une fonction plus limitée qui ne redessine pas les boutons
+    drawPartPage() ;                           // si l'écran doit être mis à jour, exécute une fonction plus limitée qui ne redessine pas les boutons        
   }    
   lastMsgChanged = false ; // lastMsgChanged is used in drawPartPage; so, it can not be set on false before
   updateFullPage = false ;
   updatePartPage = false ;
-  
+  //static char prevMachine ;
   //if ( prevMachine != machineStatus[0] ) {
-    prevMachine = machineStatus[0] ;
+  //  prevMachine = machineStatus[0] ;
   //  Serial.println( machineStatus ) ;
   //}
   yield();
 }
-
 
