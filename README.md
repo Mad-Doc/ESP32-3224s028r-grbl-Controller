@@ -1,6 +1,6 @@
-# grbl_controller_esp32
+# grbl_controller_esp32 modded code By Docitchy
 
-This Grbl controller runs on a ESP32
+This Grbl controller runs on a ESP32-3224s028r Dual usb port only !
 
 This project allows to control a CNC running GRBL without having to use a pc.<br>
 
@@ -32,29 +32,35 @@ This application displays some useful GRBL informations like
 - the work position (Wpos) and the machine position (Mpos)
 - the last error and alert message.
 
+!
+not working , i2c nunchuck pin 21 are used by lcd backlight pwm command ! fonction désactived for prevent uncontrolled action !
 Optionnally you can connect a Nunchuk (kind of joystick) in order to move the X, Y, Z, axis.<br>
 To move the axis, you have to move the joystick (up/down/left/right) and simultaneously 
 - press the C button to move X/Y axis,
 - press the Z button to move Z axis
 Nunchuk is automatically disconnected when the source of Gcode USB or Telnet.
 
+!
+
 ## Hardware
 
 To implement this project you need:
-- an ESP32 development board and
-- a display module combining 3 components:
-  - a touch screen 320 X 240 a ILI9341 (display controller),
-  - a XPT2046 (control the touch panel) and
-  - a SD card support.<br>
-  
-It should also be possible to use a separate SD card support.<br> 
-Note: this configuration uses the ILI9341 with 4 wires (CLK, MOSI, MISO and CD).<br>
-Currently, this project works only with a TFT having a ILI9341 chip, a resolution of 320X240 and XPT2046 chip for the touch screen. If you are using another display, you should change the code yourself.
+- an ESP32-3224s028r tft board
+- modding board required for serial usage (not for BT or wifi )
+- remove RGB led in back of pcb
+- in the 6 pad present , ignore the 2 central pad (or soldering simple led in place if you have )
+- the other 4 pad , left sold jump the upper and lower pad , and same to the right
+- the pad left are io16 pin and pulled up = RX pin to Grbl
+- the pad right are io17 pin and pulled up = TX pin to Grbl
+- Important NOTE
+- TX and RX pin are 3.3V pin , do NOT use TTL 5V tx rx directly , please use spécific vcc rs232 converter before connecting to arduino or other controller rs232 !!
+- if your connect directly , esp32 burn't quickly !
+- for exemple , use this product for safe TX and RX usage https://fr.aliexpress.com/item/1005003731129946.html?spm=a2g0o.order_list.order_list_main.470.60335e5b9tsz3S&gatewayAdapt=glo2fra
 
 ## Software
 
 This project compiles in Arduino IDE but it requires:
-- to add in Arduino IDE the software that support ESP32. The process is explained e.g. in this link
+- to add in Arduino IDE the software that support ESP32 dev Module. The process is explained e.g. in this link
 	https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
 - to edit the file config.h from this project in order to specify if you plan to use the WiFi and if so if you are using the ESP32 in station mode or in access point mode.
    When using the WiFi, you must also specify the SSID (= name of the access point) and the password (in access point mode, it must contain at least 8 char)<br>
@@ -88,47 +94,18 @@ Alternatively you can force a recalibration from the SD card. To do so, you have
 The content of the file does not matter (only the file name).
 Remove the file from SD card once calibration is done in order to avoid to do it at each power on.
 
-
-## Wiring the ESP32
-
-Here the connections being used in my own setup.<br>
-#### Between ESP32 and TFT.
-- 5V  - - - - - -> Vcc (on my TFT, it provides internally voltage to SD card)
-- Gpio13 - - -> CS(chip select)
-- Grnd - - - -> Grnd (on my TFT, it provides internally grnd to SD card)
-- Gpio12 - - -> Reset
-- Gpio14 - - -> DC (data/command)
-- Gpio25 - - -> CD
-- Gpio18 - - -> CLK
-- Gpio19 - - -> MISO
-- Gpio23 - - -> MOSI
-
-
-#### Between ESP32 and touch screen
-- Gpio27 - - -> CS (chip select)
-- Gpio18 - - -> CLK
-- Gpio19 - - -> MISO(T_DO)
-- Gpio23 - - -> MOSI(T_DIN)
-
-
-#### Between ESP32 and SD card
-- Gpio26 - - -> CS (chip select)
-- Gpio18 - - -> CLK
-- Gpio19 - - -> MISO
-- Gpio23 - - -> MOSI
-
-
 #### Between ESP32 and GRBL computer
 - Gpio16 is the Serial port Rx from ESP32; It has to be connected to TX pin from GRBL
 - Gpio17 is the Serial port Tx from ESP32; It has to be connected to RX pin from GRBL
+- Warning this is 3.3V pin only , please use ttl converter before connecting 
 Note : Grnd has to be common between ESP32 and GRBL computer.
 
 
 #### Between ESP32 and Nunchuk
 - 3.3V => Vcc
 - Grnd => Grnd
-- Gpio21 => SDA
-- Gpio22 => SCL
+- Gpio21 => SDA Warning the pin21 are used for tft backlight try to replace to io 27 for connecting to cn connector ! 
+- Gpio22 => SCL 
 
 
 ## Control of GRBL from the PC
