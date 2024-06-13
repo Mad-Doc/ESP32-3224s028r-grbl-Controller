@@ -1,5 +1,4 @@
-// compilé dans mon cas avec la board WEMOS LOLIN32
-
+// modifier pour ESP32-3224s028r !
 // attention: pour recevoir tous les caractères envoyés par GRBL en réponse à $$, il faut augmenter la taille du buffer des Serial
 // pour cela, on peut employer une fonction prévue Serial2.setRxBufferSize(size_t)
 // version de la libraire esp32 = 1.0.4 sinon ne compile pas !
