@@ -38,11 +38,11 @@
 //#define ILI9481_DRIVER
 //#define ILI9486_DRIVER
 //#define ILI9488_DRIVER     // WARNING: Do not connect ILI9488 display SDO to MISO if other devices share the SPI bus (TFT SDO does NOT tristate when CS is high)
-//#define ST7789_DRIVER      // Full configuration option, define additional parameters below for this display
+#define ST7789_DRIVER      // Full configuration option, define additional parameters below for this display
 //#define ST7789_2_DRIVER    // Minimal configuration option, define additional parameters below for this display
 //#define R61581_DRIVER
 //#define RM68140_DRIVER
-#define ST7796_DRIVER
+//#define ST7796_DRIVER
 //#define SSD1963_480_DRIVER
 //#define SSD1963_800_DRIVER
 //#define SSD1963_800ALT_DRIVER
@@ -53,9 +53,10 @@
 // For ST7735, ST7789 and ILI9341 ONLY, define the colour order IF the blue and red are swapped on your display
 // Try ONE option at a time to find the correct colour order for your display
 
-//  #define TFT_RGB_ORDER TFT_RGB  // Colour order Red-Green-Blue
-//  #define TFT_RGB_ORDER TFT_BGR  // Colour order Blue-Green-Red
-
+//#define TFT_RGB_ORDER TFT_RGB  // Colour order Red-Green-Blue
+//#define TFT_RGB_ORDER TFT_BGR  // Colour order Blue-Green-Red
+//#define TFT_INVERSION_ON
+#define TFT_INVERSION_OFF
 
 // ##################################################################################
 //
@@ -80,9 +81,9 @@
 #define TFT_MISO 12
 #define TFT_MOSI 13
 #define TFT_SCLK 14
-#define TFT_CS   32  // Chip select control pin
-#define TFT_DC   27  // Data Command control pin
-#define TFT_RST  33  // Reset pin (could connect to RST pin)
+#define TFT_CS   15 //32  // Chip select control pin
+#define TFT_DC   2 //27  // Data Command control pin
+#define TFT_RST  -1 //33  // Reset pin (could connect to RST pin)
 #endif	
 	
 // ##################################################################################
@@ -122,17 +123,20 @@
 // With a ST7735 display more than 27MHz may not work (spurious pixels and lines)
 // With an ILI9163 display 27 MHz works OK.
 
-#define SPI_FREQUENCY  27000000
+//#define SPI_FREQUENCY  27000000
+#define SPI_FREQUENCY  16000000
 // #define SPI_FREQUENCY  40000000
 
 // The XPT2046 requires a lower SPI clock rate of 2.5MHz so we define that here:
-#define SPI_TOUCH_FREQUENCY  2500000
+//#define SPI_TOUCH_FREQUENCY  2500000
+#define SPI_TOUCH_FREQUENCY  1000000
 
 // The ESP32 has 2 free SPI ports i.e. VSPI and HSPI, the VSPI is the default.
 // If the VSPI port is in use and pins are not accessible (e.g. TTGO T-Beam)
 // then uncomment the following line:
 #if TFT_CARD_VERSION == 2
 #define USE_HSPI_PORT
+//#define USE_VSPI_PORT
 #endif
 // Comment out the following #define if "SPI Transactions" do not need to be
 // supported. When commented out the code size will be smaller and sketches will
@@ -144,4 +148,4 @@
 // Transactions are automatically enabled by the library for an ESP32 (to use HAL mutex)
 // so changing it here has no effect
 
-// #define SUPPORT_TRANSACTIONS
+ //#define SUPPORT_TRANSACTIONS
