@@ -1,6 +1,8 @@
 # grbl_controller_esp32 modded code By Docitchy
 
-This Grbl controller runs on a ESP32-3224s028r Dual usb port only !
+This code made by mstrens are ported for ESP32-3224s028r Dual usb port only !
+
+(Original code is here https://github.com/mstrens/grbl_controller_esp32)
 
 This project allows to control a CNC running GRBL without having to use a pc.<br>
 
